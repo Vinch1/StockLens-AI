@@ -66,10 +66,8 @@ Open `android/` in Android Studio or run from a compatible Android/Gradle enviro
 
 ```bash
 cd android
-./gradlew :app:assembleDebug
+gradle :app:assembleDebug
 ```
-
-If `./gradlew` reports that Java/Gradle is unavailable, install Android Studio and use its bundled JDK 17 (or install a local JDK 17 plus Android SDK). The lightweight launcher downloads Gradle 8.14.4 on Unix-like systems when a system Gradle is not already installed.
 
 The Android emulator default backend URL is `http://10.0.2.2:8000/`. Keep live provider API keys on the backend only; do not put secrets in Android resources or Kotlin source.
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models import TechnicalAnalysis
+from app.providers.protocols import ExplanationProvider
 from app.services.compliance import sanitize_or_fallback
 
 
@@ -20,3 +21,29 @@ def educational_conclusion(technical: TechnicalAnalysis, overall_score: int, con
     )
     fallback = "This research summary is educational only and should be verified with a qualified professional."
     return sanitize_or_fallback(conclusion, fallback)
+
+
+def get_educational_conclusion(
+    technical: TechnicalAnalysis,
+    overall_score: int,
+    confidence: str,
+    explanation_provider: ExplanationProvider | None = None,
+    news_summary: str = "",
+    fundamentals_summary: str = "",
+) -> str:
+    fallback = educational_conclusion(technical, overall_score, confidence)
+
+    if explanation_provider is not None and explanation_provider.mode == "live":
+        try:
+            text = explanation_provider.generate_conclusion(
+                setup=technical.setup,
+                score=overall_score,
+                confidence=confidence,
+                news_summary=news_summary,
+                fundamentals_summary=fundamentals_summary,
+            )
+            return sanitize_or_fallback(text, fallback)
+        except Exception:
+            return fallback
+
+    return fallback

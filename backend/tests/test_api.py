@@ -1,11 +1,12 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import create_app
 from app.models import OHLCVBar
 from app.services.compliance import contains_forbidden_language, sanitize_or_fallback
 from app.services.indicators import compute_indicators, ema_series, rsi
 from app.services.scoring import technical_score
 
+app = create_app()
 client = TestClient(app)
 
 
@@ -70,3 +71,39 @@ def test_provider_status():
     response = client.get("/api/providers/status")
     assert response.status_code == 200
     assert response.json()["data_mode"] == "mock"
+
+
+def test_live_mode_response_still_has_disclaimer():
+    """Verify that even with live-mode DI wiring, disclaimer is always present."""
+    from unittest.mock import MagicMock
+
+    from app.providers import Providers
+    from app.providers.mock import MockFundamentalsProvider, MockNewsProvider
+
+    test_app = create_app()
+
+    mock_market = MagicMock()
+    bars = [
+        OHLCVBar(timestamp=f"2024-01-{i+1:02d}T00:00:00", open=100 + i * 0.5, high=105 + i, low=98 + i, close=103 + i * 0.5, volume=1000 + i * 100)
+        for i in range(30)
+    ]
+    mock_market.get_ohlcv.return_value = bars
+    mock_market.mode = "live"
+
+    # Use real mock providers for news/fundamentals to avoid MagicMock attribute issues
+    mock_news = MockNewsProvider()
+    mock_fundamentals = MockFundamentalsProvider()
+
+    test_app.state.providers = Providers(
+        market=mock_market, news=mock_news, fundamentals=mock_fundamentals, explanation=None
+    )
+
+    test_client = TestClient(test_app)
+    response = test_client.post(
+        "/api/analyze",
+        json={"ticker": "AAPL", "asset_type": "stock", "timeframe": "1D", "horizon": "swing"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "not financial advice" in payload["disclaimer"].lower()
+    assert payload["data_mode"] == "live"

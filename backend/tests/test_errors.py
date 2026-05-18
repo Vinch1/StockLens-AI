@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock
 
 from app.providers.errors import ProviderError, ProviderDataError, ProviderUnavailableError
 
@@ -22,25 +25,21 @@ class TestProviderErrorHierarchy:
 
 class TestHTTPErrorHandling:
     def test_provider_error_returns_503(self, client: TestClient):
-        """The /api/analyze endpoint should return 503 on ProviderError.
-        This is tested indirectly — mock mode won't trigger it, but we verify the handler exists."""
+        """The /api/analyze endpoint should return 503 on ProviderError."""
         from app.main import create_app
         from app.providers.errors import ProviderDataError
+        from app.providers import Providers
 
         app = create_app()
 
-        # Replace market provider with one that raises
-        from unittest.mock import MagicMock
-        from app.providers import Providers
-
-        mock_market = MagicMock()
-        mock_market.get_ohlcv.side_effect = ProviderDataError("No data for ticker")
-        mock_market.mode = "live"
+        market = AsyncMock()
+        market.get_ohlcv.side_effect = ProviderDataError("No data for ticker")
+        market.mode = "live"
 
         providers = Providers(
-            market=mock_market,
-            news=MagicMock(),
-            fundamentals=MagicMock(),
+            market=market,
+            news=AsyncMock(),
+            fundamentals=AsyncMock(),
             explanation=None,
         )
         app.state.providers = providers
@@ -54,8 +53,6 @@ class TestHTTPErrorHandling:
 
     def test_ai_fallback_on_failure(self):
         """When AI explanation provider fails, template fallback is used."""
-        from unittest.mock import MagicMock
-
         from app.models import TechnicalAnalysis, IndicatorSummary, SupportResistance
         from app.services.explanation import get_educational_conclusion
 
@@ -69,12 +66,12 @@ class TestHTTPErrorHandling:
             risks=[],
         )
 
-        failing_provider = MagicMock()
+        failing_provider = AsyncMock()
         failing_provider.mode = "live"
         failing_provider.generate_conclusion.side_effect = RuntimeError("AI down")
 
-        result = get_educational_conclusion(
-            technical, 70, "medium", explanation_provider=failing_provider
+        result = asyncio.get_event_loop().run_until_complete(
+            get_educational_conclusion(technical, 70, "medium", explanation_provider=failing_provider)
         )
         assert "educational" in result.lower()
         assert "not a recommendation" in result.lower()

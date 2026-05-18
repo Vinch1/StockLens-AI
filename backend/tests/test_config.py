@@ -3,18 +3,18 @@ from __future__ import annotations
 from app.config import Settings
 
 
-def test_default_config_is_mock_mode():
+def test_default_config_has_yfinance():
     settings = Settings()
-    assert settings.MOCK_MODE is True
+    assert settings.MARKET_DATA_PROVIDER == "yfinance"
+    assert settings.FUNDAMENTALS_PROVIDER == "yfinance"
+    assert settings.NEWS_PROVIDER == "finnhub"
 
 
 def test_config_reads_env_vars(monkeypatch):
-    monkeypatch.setenv("MOCK_MODE", "false")
     monkeypatch.setenv("MARKET_DATA_PROVIDER", "yfinance")
     monkeypatch.setenv("NEWS_PROVIDER", "finnhub")
     monkeypatch.setenv("NEWS_API_KEY", "test-key")
     settings = Settings()
-    assert settings.MOCK_MODE is False
     assert settings.MARKET_DATA_PROVIDER == "yfinance"
     assert settings.NEWS_PROVIDER == "finnhub"
     assert settings.NEWS_API_KEY == "test-key"

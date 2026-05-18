@@ -137,7 +137,7 @@ class AnalyzeResponse(BaseModel):
     timeframe: Timeframe
     horizon: Horizon
     generated_at: str
-    data_mode: Literal["mock", "live"]
+    data_mode: Literal["live"]
     price_summary: PriceSummary
     technical: TechnicalAnalysis
     news: NewsSummary

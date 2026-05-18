@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from io import BytesIO
 from typing import Protocol, runtime_checkable
 
@@ -18,36 +19,24 @@ except ImportError:
 class VisionProvider(Protocol):
     mode: str
 
-    def detect_text(self, image_bytes: bytes) -> str: ...
+    async def detect_text(self, image_bytes: bytes) -> str: ...
 
     def status(self) -> dict[str, object]: ...
-
-
-class MockVisionProvider:
-    mode = "mock"
-
-    def detect_text(self, image_bytes: bytes) -> str:
-        return ""
-
-    def status(self) -> dict[str, object]:
-        return {
-            "name": "vision",
-            "mode": "mock",
-            "configured": False,
-            "message": "OCR not configured.",
-        }
 
 
 class TesseractVisionProvider:
     mode = "live"
 
-    def detect_text(self, image_bytes: bytes) -> str:
+    async def detect_text(self, image_bytes: bytes) -> str:
+        return await asyncio.to_thread(self._sync_detect, image_bytes)
+
+    @staticmethod
+    def _sync_detect(image_bytes: bytes) -> str:
         try:
             if not _HAS_TESSERACT:
                 return ""
             image = Image.open(BytesIO(image_bytes))
-            text = pytesseract.image_to_string(image)
-            return text
+            return pytesseract.image_to_string(image)
         except Exception:
             return ""
 

@@ -21,8 +21,8 @@ def setup_label(score: int, indicators: IndicatorSummary) -> str:
     return "bearish"
 
 
-def confidence(data_mode: str, bars_count: int, score: int, indicators: IndicatorSummary) -> str:
-    if data_mode == "mock" or bars_count < 200:
+def confidence(bars_count: int, score: int, indicators: IndicatorSummary) -> str:
+    if bars_count < 200:
         return "low"
     conflict_count = 0
     if indicators.macd is not None and indicators.macd_signal is not None:

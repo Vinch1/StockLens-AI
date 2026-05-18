@@ -36,7 +36,6 @@ def create_app() -> FastAPI:
         version=VERSION,
         lifespan=lifespan,
     )
-    # Default mock providers — used when lifespan doesn't run (e.g., TestClient without context manager)
     application.state.providers = create_providers(settings)
     application.state.settings = settings
     application.add_middleware(
@@ -52,32 +51,24 @@ def create_app() -> FastAPI:
         return {"status": "ok", "service": "stocklens-ai-api", "version": VERSION}
 
     @application.post("/api/analyze")
-    def analyze(request: AnalyzeRequest) -> dict[str, object]:
+    async def analyze(request: AnalyzeRequest) -> dict[str, object]:
         providers = _get_providers(application)
         try:
-            return analyze_ticker(
+            return (await analyze_ticker(
                 request,
                 market_provider=providers.market,
                 news_provider=providers.news,
                 fundamentals_provider=providers.fundamentals,
                 explanation_provider=providers.explanation,
-            ).model_dump()
+            )).model_dump()
         except ProviderError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @application.post("/api/parse-screenshot")
-    def parse_screenshot_endpoint(request: ScreenshotParseRequest) -> dict[str, object]:
-        return parse_screenshot(image_base64=request.image_base64, filename=request.filename)
-
-    @application.get("/api/mock/ohlcv/{ticker}")
-    def mock_ohlcv(ticker: str, timeframe: str = "1D", bars: int = 260) -> dict[str, object]:
-        providers = _get_providers(application)
-        normalized = ticker.strip().upper()
-        bounded_bars = max(30, min(bars, 500))
-        data = providers.market.get_ohlcv(normalized, timeframe, bounded_bars)
-        return {"ticker": normalized, "timeframe": timeframe, "data_mode": providers.market.mode, "bars": [bar.model_dump() for bar in data]}
+    async def parse_screenshot_endpoint(request: ScreenshotParseRequest) -> dict[str, object]:
+        return await parse_screenshot(image_base64=request.image_base64, filename=request.filename)
 
     @application.get("/api/providers/status")
     def providers_status() -> dict[str, object]:
@@ -85,7 +76,7 @@ def create_app() -> FastAPI:
         provider_list = [providers.market.status(), providers.news.status(), providers.fundamentals.status()]
         if providers.explanation:
             provider_list.append(providers.explanation.status())
-        return {"status": "ok", "data_mode": providers.market.mode, "providers": provider_list}
+        return {"status": "ok", "providers": provider_list}
 
     return application
 

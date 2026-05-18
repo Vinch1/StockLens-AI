@@ -1,77 +1,16 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
-
-from app.models import FundamentalMetrics, FundamentalsSummary, NewsSummary, OHLCVBar
-from app.providers.mock import (
-    MockFundamentalsProvider,
-    MockMarketDataProvider,
-    MockNewsProvider,
-)
-
-
-class TestMockProviderProtocols:
-    def test_mock_market_provider_has_get_ohlcv(self):
-        provider = MockMarketDataProvider()
-        bars = provider.get_ohlcv("AAPL", "1D", 30)
-        assert isinstance(bars, list)
-        assert all(isinstance(b, OHLCVBar) for b in bars)
-        assert provider.mode == "mock"
-
-    def test_mock_news_provider_has_get_news(self):
-        provider = MockNewsProvider()
-        result = provider.get_news("AAPL")
-        assert isinstance(result, NewsSummary)
-        assert provider.mode == "mock"
-
-    def test_mock_fundamentals_provider_has_get_fundamentals(self):
-        provider = MockFundamentalsProvider()
-        result = provider.get_fundamentals("AAPL")
-        assert isinstance(result, FundamentalsSummary)
-        assert provider.mode == "mock"
-
-    def test_all_mock_providers_have_status(self):
-        for provider in [MockMarketDataProvider(), MockNewsProvider(), MockFundamentalsProvider()]:
-            status = provider.status()
-            assert "name" in status
-            assert "mode" in status
-            assert status["mode"] == "mock"
 
 
 class TestProviderFactory:
-    def test_mock_mode_returns_mock_providers(self):
-        from app.config import Settings
-        from app.providers import create_providers
-
-        settings = Settings(MOCK_MODE=True)
-        providers = create_providers(settings)
-        assert providers.market.mode == "mock"
-        assert providers.news.mode == "mock"
-        assert providers.fundamentals.mode == "mock"
-        assert providers.explanation is None
-
-    def test_mock_mode_overrides_individual_settings(self):
-        from app.config import Settings
-        from app.providers import create_providers
-
-        settings = Settings(MOCK_MODE=True, MARKET_DATA_PROVIDER="yfinance")
-        providers = create_providers(settings)
-        assert providers.market.mode == "mock"
-
-    def test_live_mode_with_mock_fallback(self):
-        from app.config import Settings
-        from app.providers import create_providers
-
-        settings = Settings(MOCK_MODE=False)
-        providers = create_providers(settings)
-        assert providers.market.mode == "mock"
-        assert providers.news.mode == "mock"
-
     def test_yfinance_market_provider_created(self):
         from app.config import Settings
         from app.providers import create_providers
 
-        settings = Settings(MOCK_MODE=False, MARKET_DATA_PROVIDER="yfinance")
+        settings = Settings(MARKET_DATA_PROVIDER="yfinance")
         providers = create_providers(settings)
         assert providers.market.mode == "live"
 
@@ -79,15 +18,23 @@ class TestProviderFactory:
         from app.config import Settings
         from app.providers import create_providers
 
-        settings = Settings(MOCK_MODE=False, NEWS_PROVIDER="finnhub", NEWS_API_KEY="test-key")
+        settings = Settings(NEWS_PROVIDER="finnhub", NEWS_API_KEY="test-key")
         providers = create_providers(settings)
         assert providers.news.mode == "live"
+
+    def test_finnhub_without_key_is_unavailable(self):
+        from app.config import Settings
+        from app.providers import create_providers
+
+        settings = Settings(NEWS_PROVIDER="finnhub", NEWS_API_KEY="")
+        providers = create_providers(settings)
+        assert providers.news.mode == "unavailable"
 
     def test_yfinance_fundamentals_provider_created(self):
         from app.config import Settings
         from app.providers import create_providers
 
-        settings = Settings(MOCK_MODE=False, FUNDAMENTALS_PROVIDER="yfinance")
+        settings = Settings(FUNDAMENTALS_PROVIDER="yfinance")
         providers = create_providers(settings)
         assert providers.fundamentals.mode == "live"
 
@@ -95,7 +42,7 @@ class TestProviderFactory:
         from app.config import Settings
         from app.providers import create_providers
 
-        settings = Settings(MOCK_MODE=False, AI_PROVIDER="openai", AI_API_KEY="test-key", AI_MODEL="gpt-4o-mini")
+        settings = Settings(AI_PROVIDER="openai", AI_API_KEY="test-key", AI_MODEL="gpt-4o-mini")
         providers = create_providers(settings)
         assert providers.explanation is not None
         assert providers.explanation.mode == "live"
@@ -104,9 +51,17 @@ class TestProviderFactory:
         from app.config import Settings
         from app.providers import create_providers
 
-        settings = Settings(MOCK_MODE=False, AI_PROVIDER="openai", AI_API_KEY="")
+        settings = Settings(AI_PROVIDER="openai", AI_API_KEY="")
         providers = create_providers(settings)
         assert providers.explanation is None
+
+    def test_unknown_provider_raises(self):
+        from app.config import Settings
+        from app.providers import create_providers
+
+        settings = Settings(MARKET_DATA_PROVIDER="nonexistent")
+        with pytest.raises(ValueError, match="Unknown market data provider"):
+            create_providers(settings)
 
 
 class TestCache:
@@ -127,7 +82,7 @@ class TestCache:
 
         result2 = get_with_cache(cache, ("test", "key"), fetcher, ttl=60)
         assert result2 == "cached_value"
-        assert call_count == 1  # Not called again
+        assert call_count == 1
 
     def test_cache_expires(self):
         import time
@@ -145,6 +100,27 @@ class TestCache:
         time.sleep(0.01)
         get_with_cache(cache, ("test", "key"), fetcher, ttl=0)
         assert call_count == 2
+
+    def test_async_cache_stores_and_retrieves(self):
+        from app.providers.cache import aget_with_cache
+
+        cache = {}
+        call_count = 0
+
+        async def fetcher():
+            nonlocal call_count
+            call_count += 1
+            return "cached_value"
+
+        async def run():
+            r1 = await aget_with_cache(cache, ("test", "key"), fetcher, ttl=60)
+            r2 = await aget_with_cache(cache, ("test", "key"), fetcher, ttl=60)
+            return r1, r2
+
+        r1, r2 = asyncio.get_event_loop().run_until_complete(run())
+        assert r1 == "cached_value"
+        assert r2 == "cached_value"
+        assert call_count == 1
 
 
 class TestSentimentClassifier:

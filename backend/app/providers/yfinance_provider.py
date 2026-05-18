@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Literal
 
 import yfinance as yf
 
 from app.models import OHLCVBar
-from app.providers.cache import _ohlcv_cache, get_with_cache
+from app.providers.cache import _ohlcv_cache, aget_with_cache
 from app.providers.errors import ProviderDataError, ProviderError
 
 _INTERVAL_MAP: dict[str, str] = {
@@ -39,16 +40,16 @@ def _cache_ttl_for_timeframe(timeframe: str) -> int:
 class YFinanceMarketDataProvider:
     mode: Literal["live"] = "live"
 
-    def get_ohlcv(self, ticker: str, timeframe: str = "1D", bars: int = 260) -> list[OHLCVBar]:
+    async def get_ohlcv(self, ticker: str, timeframe: str = "1D", bars: int = 260) -> list[OHLCVBar]:
         cache_key = (ticker, timeframe)
         ttl = _cache_ttl_for_timeframe(timeframe)
-        return get_with_cache(_ohlcv_cache, cache_key, lambda: self._fetch_ohlcv(ticker, timeframe, bars), ttl=ttl)
+        return await aget_with_cache(_ohlcv_cache, cache_key, lambda: self._fetch_ohlcv(ticker, timeframe, bars), ttl=ttl)
 
-    def _fetch_ohlcv(self, ticker: str, timeframe: str, bars: int) -> list[OHLCVBar]:
+    async def _fetch_ohlcv(self, ticker: str, timeframe: str, bars: int) -> list[OHLCVBar]:
         interval = _INTERVAL_MAP.get(timeframe, "1d")
         period = _PERIOD_MAP.get(timeframe, "2y")
         try:
-            df = yf.Ticker(ticker).history(period=period, interval=interval)
+            df = await asyncio.to_thread(lambda: yf.Ticker(ticker).history(period=period, interval=interval))
         except Exception as exc:
             raise ProviderError(str(exc)) from exc
 

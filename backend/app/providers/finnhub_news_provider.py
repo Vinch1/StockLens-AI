@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 import httpx
 
 from app.models import CatalystType, NewsItem, NewsSummary, Sentiment
-from app.providers.cache import _news_cache, get_with_cache
+from app.providers.cache import _news_cache, aget_with_cache
 from app.providers.errors import ProviderDataError, ProviderUnavailableError
 from app.services.sentiment import classify_sentiment
 
@@ -55,14 +55,14 @@ class FinnhubNewsProvider:
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
 
-    def get_news(self, ticker: str) -> NewsSummary:
-        return get_with_cache(
+    async def get_news(self, ticker: str) -> NewsSummary:
+        return await aget_with_cache(
             _news_cache,
             ("news", ticker),
             lambda: self._fetch(ticker),
         )
 
-    def _fetch(self, ticker: str) -> NewsSummary:
+    async def _fetch(self, ticker: str) -> NewsSummary:
         today = date.today()
         from_date = today - timedelta(days=7)
         params = {
@@ -73,12 +73,13 @@ class FinnhubNewsProvider:
         headers = {"X-Finnhub-Token": self._api_key}
 
         try:
-            response = httpx.get(_FINNHUB_NEWS_URL, params=params, headers=headers, timeout=10)
-            response.raise_for_status()
+            async with httpx.AsyncClient() as client:
+                response = await client.get(_FINNHUB_NEWS_URL, params=params, headers=headers, timeout=10)
+                response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 429:
                 raise ProviderUnavailableError("Finnhub rate limit exceeded") from exc
-            raise ProviderDataError(f"Finnub returned {exc.response.status_code}") from exc
+            raise ProviderDataError(f"Finnhub returned {exc.response.status_code}") from exc
         except httpx.RequestError as exc:
             raise ProviderUnavailableError(f"Finnhub request failed: {exc}") from exc
 

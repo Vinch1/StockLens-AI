@@ -25,7 +25,7 @@ class AIExplanationProvider:
         else:
             self._litellm_model = model
 
-    def generate_conclusion(
+    async def generate_conclusion(
         self,
         setup: str,
         score: int,
@@ -70,7 +70,7 @@ class AIExplanationProvider:
             if self.provider == "glm":
                 kwargs["api_base"] = self._api_base
 
-            response = litellm.completion(**kwargs)
+            response = await litellm.acompletion(**kwargs)
             return response.choices[0].message.content
         except litellm.exceptions.AuthenticationError as exc:
             raise ProviderUnavailableError(str(exc)) from exc

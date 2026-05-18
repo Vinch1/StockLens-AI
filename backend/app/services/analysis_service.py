@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 
 from app.models import AnalyzeRequest, AnalyzeResponse, PriceSummary, TechnicalAnalysis
@@ -10,14 +11,19 @@ from app.services.indicators import compute_indicators, support_resistance
 from app.services.scoring import confidence, overall_score, setup_label, technical_evidence, technical_risks, technical_score
 
 
-def analyze_ticker(
+async def analyze_ticker(
     request: AnalyzeRequest,
     market_provider: MarketDataProvider,
     news_provider: NewsProvider,
     fundamentals_provider: FundamentalsProvider,
     explanation_provider: ExplanationProvider | None = None,
 ) -> AnalyzeResponse:
-    bars = market_provider.get_ohlcv(request.ticker, request.timeframe)
+    bars_coro = market_provider.get_ohlcv(request.ticker, request.timeframe)
+    news_coro = news_provider.get_news(request.ticker)
+    fundamentals_coro = fundamentals_provider.get_fundamentals(request.ticker)
+
+    bars, news, fundamentals = await asyncio.gather(bars_coro, news_coro, fundamentals_coro)
+
     if len(bars) < 2:
         raise ValueError("At least two OHLCV bars are required for analysis.")
     indicators = compute_indicators(bars)
@@ -28,17 +34,21 @@ def analyze_ticker(
     technical = TechnicalAnalysis(
         setup=setup_label(score, indicators),
         score=score,
-        confidence=confidence(market_provider.mode, len(bars), score, indicators),
+        confidence=confidence(len(bars), score, indicators),
         indicators=indicators,
         support_resistance=support_resistance(bars),
         evidence=technical_evidence(indicators, last.close),
         risks=technical_risks(indicators, last.close),
     )
-    news = news_provider.get_news(request.ticker) if request.include_news else news_provider.get_news(request.ticker).model_copy(update={"items": [], "score": 0, "sentiment": "neutral", "summary": "News analysis was not requested."})
-    fundamentals = fundamentals_provider.get_fundamentals(request.ticker) if request.include_fundamentals else fundamentals_provider.get_fundamentals(request.ticker).model_copy(update={"summary": "Fundamental analysis was not requested."})
+
+    if not request.include_news:
+        news = news.model_copy(update={"items": [], "score": 0, "sentiment": "neutral", "summary": "News analysis was not requested."})
+    if not request.include_fundamentals:
+        fundamentals = fundamentals.model_copy(update={"summary": "Fundamental analysis was not requested."})
+
     combined_score = overall_score(technical, news, fundamentals.score)
-    combined_confidence = "low" if market_provider.mode == "mock" else technical.confidence
-    conclusion = get_educational_conclusion(
+    combined_confidence = technical.confidence
+    conclusion = await get_educational_conclusion(
         technical, combined_score, combined_confidence,
         explanation_provider=explanation_provider,
         news_summary=news.summary,
@@ -56,7 +66,7 @@ def analyze_ticker(
         timeframe=request.timeframe,
         horizon=request.horizon,
         generated_at=datetime.now(UTC).replace(microsecond=0).isoformat(),
-        data_mode=market_provider.mode,
+        data_mode="live",
         price_summary=PriceSummary(last_close=last.close, change_pct=round(change_pct, 2), volume=last.volume),
         technical=technical,
         news=news,

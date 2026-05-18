@@ -23,7 +23,7 @@ def educational_conclusion(technical: TechnicalAnalysis, overall_score: int, con
     return sanitize_or_fallback(conclusion, fallback)
 
 
-def get_educational_conclusion(
+async def get_educational_conclusion(
     technical: TechnicalAnalysis,
     overall_score: int,
     confidence: str,
@@ -35,7 +35,7 @@ def get_educational_conclusion(
 
     if explanation_provider is not None and explanation_provider.mode == "live":
         try:
-            text = explanation_provider.generate_conclusion(
+            text = await explanation_provider.generate_conclusion(
                 setup=technical.setup,
                 score=overall_score,
                 confidence=confidence,

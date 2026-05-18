@@ -9,7 +9,7 @@ from app.models import FundamentalsSummary, NewsSummary, OHLCVBar
 class MarketDataProvider(Protocol):
     mode: str
 
-    def get_ohlcv(self, ticker: str, timeframe: str = "1D", bars: int = 260) -> list[OHLCVBar]: ...
+    async def get_ohlcv(self, ticker: str, timeframe: str = "1D", bars: int = 260) -> list[OHLCVBar]: ...
 
     def status(self) -> dict[str, object]: ...
 
@@ -18,7 +18,7 @@ class MarketDataProvider(Protocol):
 class NewsProvider(Protocol):
     mode: str
 
-    def get_news(self, ticker: str) -> NewsSummary: ...
+    async def get_news(self, ticker: str) -> NewsSummary: ...
 
     def status(self) -> dict[str, object]: ...
 
@@ -27,7 +27,7 @@ class NewsProvider(Protocol):
 class FundamentalsProvider(Protocol):
     mode: str
 
-    def get_fundamentals(self, ticker: str) -> FundamentalsSummary: ...
+    async def get_fundamentals(self, ticker: str) -> FundamentalsSummary: ...
 
     def status(self) -> dict[str, object]: ...
 
@@ -36,7 +36,7 @@ class FundamentalsProvider(Protocol):
 class ExplanationProvider(Protocol):
     mode: str
 
-    def generate_conclusion(
+    async def generate_conclusion(
         self,
         setup: str,
         score: int,

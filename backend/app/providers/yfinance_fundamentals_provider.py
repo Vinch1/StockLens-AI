@@ -1,25 +1,27 @@
 from __future__ import annotations
 
+import asyncio
+
 import yfinance as yf
 
 from app.models import FundamentalMetrics, FundamentalsSummary
-from app.providers.cache import _fundamentals_cache, get_with_cache
+from app.providers.cache import _fundamentals_cache, aget_with_cache
 from app.providers.errors import ProviderDataError
 
 
 class YFinanceFundamentalsProvider:
     mode = "live"
 
-    def get_fundamentals(self, ticker: str) -> FundamentalsSummary:
-        return get_with_cache(
+    async def get_fundamentals(self, ticker: str) -> FundamentalsSummary:
+        return await aget_with_cache(
             _fundamentals_cache,
             ("fundamentals", ticker),
             lambda: self._fetch(ticker),
         )
 
-    def _fetch(self, ticker: str) -> FundamentalsSummary:
+    async def _fetch(self, ticker: str) -> FundamentalsSummary:
         try:
-            info: dict = yf.Ticker(ticker).info or {}
+            info: dict = await asyncio.to_thread(lambda: yf.Ticker(ticker).info) or {}
         except Exception as exc:
             raise ProviderDataError(str(exc)) from exc
 

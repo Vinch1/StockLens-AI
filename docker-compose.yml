@@ -1,0 +1,11 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: stocklens-ai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      MOCK_MODE: "true"
+      APP_ENV: local
+      LOG_LEVEL: info

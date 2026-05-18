@@ -35,11 +35,11 @@ jobs:
             test -s "$file" || { echo "Missing or empty: $file"; exit 1; }
           done
 
-      - name: Verify educational-only and mock-mode language
+      - name: Verify educational-only and provider-safety language
         run: |
           set -euo pipefail
           rg "educational-only|Education only|For education only" README.md docs
-          rg "mock mode|MOCK_MODE" README.md docs .env.example docker-compose.yml
+          rg "backend-only|provider|API keys" README.md docs .env.example docker-compose.yml
 
       - name: Check example environment contains no obvious real secrets
         run: |

@@ -18,7 +18,7 @@ Recommended wording:
 
 ## Market Data
 
-- Clearly label delayed, simulated, stale, or mock market data.
+- Clearly label delayed, stale, unavailable, or provider-sourced market data.
 - Respect provider licenses, attribution requirements, and redistribution limits before enabling real provider data.
 - Do not cache provider data beyond permitted terms.
 
@@ -28,11 +28,18 @@ Recommended wording:
 - Add disclaimers near AI-generated summaries.
 - Prefer concept explanations, risk-factor summaries, and data literacy guidance over instructions to trade.
 
+## Analysis Outputs
+
+- Scores are educational research signals, not predictions or rankings.
+- Overall labels should describe research context, such as watchlist research candidate, mixed research candidate, needs more confirmation, or high-risk setup.
+- Technical, fundamentals, risk, news, and market-context sections should show supporting evidence and limitations rather than conclusions that imply certainty.
+- Confidence should decrease when data quality is limited, provider sections are unavailable, volatility is elevated, or signals conflict.
+
 ## Screenshots and Demos
 
-- Use mock mode for screenshots, marketing images, demo recordings, and documentation.
 - Remove or blur names, emails, account identifiers, portfolio balances, API keys, and prompt content that may identify a user.
 - Avoid capturing browser address bars containing tokens or query-string secrets.
+- Do not show provider dashboards, account pages, raw API responses, or restricted data displays in public demos.
 
 ## Records and Auditability
 

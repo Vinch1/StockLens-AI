@@ -58,47 +58,63 @@ class YFinanceFundamentalsProvider:
             operating_margin=_round(operating_margin),
         )
 
-        score = 50
+        growth_score = 50
 
         if revenue_growth is not None:
             if revenue_growth > 0:
-                score += 10
+                growth_score += 15
             if revenue_growth > 0.15:
-                score += 5
+                growth_score += 10
 
         if earnings_growth is not None:
             if earnings_growth > 0:
-                score += 10
+                growth_score += 15
             if earnings_growth > 0.2:
-                score += 5
+                growth_score += 10
 
+        cash_flow_score = 50
         if free_cash_flow is not None and free_cash_flow > 0:
-            score += 10
+            cash_flow_score += 30
+
+        balance_sheet_score = 50
 
         if debt_to_equity is not None:
             if debt_to_equity < 100:
-                score += 5
+                balance_sheet_score += 15
             if debt_to_equity < 50:
-                score += 5
+                balance_sheet_score += 10
             if debt_to_equity > 200:
-                score -= 10
+                balance_sheet_score -= 20
 
+        valuation_score = 50
         if pe_ratio is not None:
             if 5 < pe_ratio < 35:
-                score += 5
+                valuation_score += 20
             if pe_ratio > 100:
-                score -= 10
+                valuation_score -= 20
 
+        profitability_score = 50
         if gross_margin is not None:
             if gross_margin > 0.3:
-                score += 5
+                profitability_score += 15
             if gross_margin > 0.5:
-                score += 5
+                profitability_score += 10
 
         if operating_margin is not None and operating_margin > 0.15:
-            score += 5
+            profitability_score += 15
 
-        score = max(0, min(100, score))
+        growth_score = max(0, min(100, growth_score))
+        profitability_score = max(0, min(100, profitability_score))
+        balance_sheet_score = max(0, min(100, balance_sheet_score))
+        valuation_score = max(0, min(100, valuation_score))
+        cash_flow_score = max(0, min(100, cash_flow_score))
+        score = round(
+            (growth_score * 0.25)
+            + (profitability_score * 0.25)
+            + (balance_sheet_score * 0.20)
+            + (valuation_score * 0.15)
+            + (cash_flow_score * 0.15)
+        )
 
         if score >= 70:
             quality = "strong"
@@ -141,6 +157,11 @@ class YFinanceFundamentalsProvider:
             score=score,
             metrics=metrics,
             summary=" ".join(summary_parts),
+            growth_score=growth_score,
+            profitability_score=profitability_score,
+            balance_sheet_score=balance_sheet_score,
+            valuation_score=valuation_score,
+            cash_flow_score=cash_flow_score,
         )
 
     def status(self) -> dict[str, object]:

@@ -3,9 +3,9 @@
 ## Goals
 
 - Verify that educational-only positioning appears in user-facing responses.
-- Verify mock mode works without secrets or network dependencies.
+- Verify provider status clearly reports live and unavailable providers.
 - Prevent accidental leaks of credentials, account identifiers, and private screenshots.
-- Provide CI checks that are useful before backend or Android source exists.
+- Provide CI checks that are useful without committing provider credentials.
 
 ## Test Layers
 
@@ -19,20 +19,21 @@
 
 When backend implementation exists, add tests for:
 
-- `GET /health` in mock mode.
+- `GET /health`.
 - Symbol validation and structured errors.
 - Educational disclaimer in snapshot and explanation responses.
-- Provider-key absence falling back to mock mode or safe configuration errors.
+- Provider-key absence returning safe unavailable-provider summaries or provider status.
+- Analysis responses include `data_quality`, `risk`, `market_context`, technical sub-scores, and fundamentals sub-scores.
+- Short, swing, and long horizons use different composite scoring weights.
 - Error responses that do not include stack traces or secrets.
 
 ### Client Tests
 
 When client implementation exists, add tests for:
 
-- Mock-mode indicator visibility.
 - Educational disclaimer visibility.
-- Safe rendering of missing, delayed, or mock data.
-- Screenshot test fixtures that use synthetic data only.
+- Safe rendering of missing, delayed, unavailable, or live provider data.
+- Screenshot test fixtures that do not expose secrets or personal data.
 
 ### Security Tests
 
@@ -42,12 +43,13 @@ When client implementation exists, add tests for:
 
 ## Manual QA Checklist
 
-1. Start the app with `MOCK_MODE=true` and no provider keys.
-2. Confirm health/status reports mock mode.
-3. Request a sample stock snapshot.
-4. Confirm no response says to buy, sell, or hold.
-5. Capture a demo screenshot and verify no secrets or personal data are visible.
-6. Review logs for redaction.
+1. Start the backend with `.env` configured for yfinance and, optionally, `NEWS_API_KEY`.
+2. Confirm `/api/providers/status` reports market and fundamentals as live and news as live or unavailable.
+3. Request a sample stock analysis.
+4. Confirm response includes data quality, technical sub-scores, risk, fundamentals, news, market context, and overall sections.
+5. Confirm no response says to buy, sell, or hold.
+6. Capture a demo screenshot and verify no secrets or personal data are visible.
+7. Review logs for redaction.
 
 ## CI Baseline
 

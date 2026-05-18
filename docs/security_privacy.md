@@ -3,7 +3,6 @@
 ## Security Principles
 
 - No secrets in Git.
-- Mock mode must work without external credentials.
 - Least privilege for any future API keys, service accounts, and CI tokens.
 - Redact sensitive values from logs, screenshots, traces, and error messages.
 - Treat watchlists, prompts, screenshots, and uploaded files as potentially sensitive user data.
@@ -11,6 +10,8 @@
 ## Environment Variables
 
 Use `.env.example` as the documented template and keep local `.env` files untracked. Required values should have safe defaults where possible.
+
+Live provider configuration must stay on the backend. Do not put provider keys in Android resources, Kotlin source, screenshots, or client logs.
 
 Sensitive examples:
 
@@ -24,11 +25,11 @@ Sensitive examples:
 
 Before sharing screenshots or recordings:
 
-1. Enable `MOCK_MODE=true`.
-2. Use sample symbols and sample explanations.
-3. Confirm no API keys, bearer tokens, account IDs, emails, or personal watchlists are visible.
-4. Confirm browser address bars do not expose tokens or private query parameters.
-5. Prefer synthetic data generated specifically for demos.
+1. Use sample symbols and avoid exposing personal watchlists.
+2. Confirm no API keys, bearer tokens, account IDs, emails, or personal watchlists are visible.
+3. Confirm browser address bars do not expose tokens or private query parameters.
+4. Confirm provider dashboards or account pages are not visible.
+5. Avoid showing raw provider responses that may be restricted by provider terms.
 
 ## Logging Guidance
 
@@ -37,7 +38,7 @@ Log:
 - Request IDs.
 - Endpoint names.
 - Status codes.
-- Provider mode (`mock`, `sandbox`, or `provider`).
+- Provider mode (`live` or `unavailable`).
 - Timing and coarse error categories.
 
 Do not log:

@@ -2,14 +2,13 @@
 
 ## Purpose
 
-StockLens AI is an educational stock research and risk-analysis assistant. The MVP helps beginners review a ticker's technical setup, mock/demo news catalysts, placeholder long-term fundamentals, and risk factors without producing investment instructions or guaranteed-return claims.
+StockLens AI is an educational stock research and risk-analysis assistant. The MVP helps beginners review a ticker's technical setup, configured news catalysts, long-term fundamentals, and risk factors without producing investment instructions or guaranteed-return claims.
 
 ## Positioning and safety boundaries
 
 - Educational research summaries only; not financial, investment, tax, or legal advice.
 - No stock-picking, auto-trading, brokerage connection, portfolio allocation, or individualized recommendations.
 - No TradingView scraping and no screenshot-derived OHLCV analysis.
-- Mock mode must be visible anywhere demo data, demo headlines, or placeholder fundamentals are shown.
 - User-facing conclusions should use terms such as research candidate, watchlist candidate, mixed setup, high-risk setup, or needs more confirmation.
 
 ## Core user stories
@@ -22,21 +21,23 @@ StockLens AI is an educational stock research and risk-analysis assistant. The M
 
 ## MVP functional requirements
 
-- Backend exposes `/health`, `/api/analyze`, `/api/parse-screenshot`, `/api/mock/ohlcv/{ticker}`, and `/api/providers/status`.
-- Backend computes SMA 20/50/200, EMA 12/26, RSI 14, MACD, Bollinger Bands, ATR 14, volume ratio, and support/resistance approximations deterministically.
-- Backend applies transparent scoring and confidence rules.
-- News and fundamentals providers are abstracted and mock-only by default.
+- Backend exposes `/health`, `/api/analyze`, `/api/parse-screenshot`, and `/api/providers/status`.
+- Backend computes SMA 20/50/200, EMA 12/26, RSI 14, MACD, Bollinger Bands, ATR 14, volume ratio, support/resistance approximations, risk metrics, and relative-strength context deterministically.
+- Backend applies transparent horizon-aware scoring and confidence rules.
+- Backend includes data-quality, technical, risk, fundamentals, news, market-context, and overall sections in analysis responses.
+- News and fundamentals providers are abstracted and configured only on the backend.
 - Android uses Kotlin, Jetpack Compose, MVVM, Compose Navigation, Retrofit/OkHttp, and DataStore.
-- Android shows loading, empty, error, mock-mode, and disclaimer states.
+- Android shows loading, empty, error, unavailable-provider, and disclaimer states.
 
 ## Acceptance criteria
 
 - `GET /health` returns status ok and service/version metadata.
-- `POST /api/analyze` returns a structured mock analysis for AAPL without hallucinated live prices or live headlines.
+- `POST /api/analyze` returns a structured analysis for AAPL using configured backend providers.
+- Analysis responses include trend, momentum, structure, volume, volatility, risk, data-quality, fundamentals, news, and market-context evidence where available.
 - Forbidden investment-advice phrases are detected by backend tests.
 - Screenshot flow states that screenshots are assistive only and requires confirmation.
 - Watchlist and onboarding acknowledgment are stored locally on device.
-- README documents backend, Android, mock mode, and future backend-only provider keys.
+- README documents backend, Android, and backend-only provider key setup.
 
 ## Out of scope
 

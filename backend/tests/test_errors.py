@@ -4,7 +4,6 @@ import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock
 
 from app.providers.errors import ProviderError, ProviderDataError, ProviderUnavailableError
 
@@ -32,14 +31,16 @@ class TestHTTPErrorHandling:
 
         app = create_app()
 
-        market = AsyncMock()
-        market.get_ohlcv.side_effect = ProviderDataError("No data for ticker")
-        market.mode = "live"
+        class FailingMarketProvider:
+            mode = "live"
+
+            async def get_ohlcv(self, ticker: str, timeframe: str = "1D", bars: int = 260):
+                raise ProviderDataError("No data for ticker")
 
         providers = Providers(
-            market=market,
-            news=AsyncMock(),
-            fundamentals=AsyncMock(),
+            market=FailingMarketProvider(),
+            news=object(),
+            fundamentals=object(),
             explanation=None,
         )
         app.state.providers = providers
@@ -66,12 +67,14 @@ class TestHTTPErrorHandling:
             risks=[],
         )
 
-        failing_provider = AsyncMock()
-        failing_provider.mode = "live"
-        failing_provider.generate_conclusion.side_effect = RuntimeError("AI down")
+        class FailingExplanationProvider:
+            mode = "live"
 
-        result = asyncio.get_event_loop().run_until_complete(
-            get_educational_conclusion(technical, 70, "medium", explanation_provider=failing_provider)
+            async def generate_conclusion(self, *args: object, **kwargs: object) -> str:
+                raise RuntimeError("AI down")
+
+        result = asyncio.run(
+            get_educational_conclusion(technical, 70, "medium", explanation_provider=FailingExplanationProvider())
         )
         assert "educational" in result.lower()
         assert "not a recommendation" in result.lower()

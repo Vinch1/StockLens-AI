@@ -27,7 +27,7 @@ class PreferencesStore(private val context: Context) {
         UserSettings(
             onboardingComplete = preferences[Keys.onboardingComplete] ?: false,
             apiBaseUrl = preferences[Keys.apiBaseUrl] ?: "http://10.0.2.2:8000/",
-            dataMode = preferences[Keys.dataMode] ?: "mock",
+            dataMode = preferences[Keys.dataMode] ?: "live",
             defaultTimeframe = preferences[Keys.defaultTimeframe] ?: "1D",
             defaultHorizon = preferences[Keys.defaultHorizon] ?: "swing",
             darkMode = preferences[Keys.darkMode] ?: false

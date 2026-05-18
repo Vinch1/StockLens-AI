@@ -15,9 +15,19 @@ class _UnavailableProvider:
         self._reason = reason
         self.mode = "unavailable"
 
-    async def __getattr__(self, name: str):
-        if name.startswith("_"):
-            raise AttributeError(name)
+    def _raise(self) -> None:
+        raise ProviderDataError(f"{self._name} is not configured: {self._reason}")
+
+    async def get_ohlcv(self, *args: object, **kwargs: object) -> object:
+        self._raise()
+
+    async def get_news(self, *args: object, **kwargs: object) -> object:
+        self._raise()
+
+    async def get_fundamentals(self, *args: object, **kwargs: object) -> object:
+        self._raise()
+
+    async def generate_conclusion(self, *args: object, **kwargs: object) -> str:
         raise ProviderDataError(f"{self._name} is not configured: {self._reason}")
 
     def status(self) -> dict[str, object]:

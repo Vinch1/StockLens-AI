@@ -87,6 +87,11 @@ class TechnicalAnalysis(BaseModel):
     support_resistance: SupportResistance
     evidence: list[str]
     risks: list[str]
+    trend_score: int | None = None
+    momentum_score: int | None = None
+    structure_score: int | None = None
+    volume_score: int | None = None
+    volatility_score: int | None = None
 
 
 class NewsItem(BaseModel):
@@ -122,6 +127,38 @@ class FundamentalsSummary(BaseModel):
     score: int
     metrics: FundamentalMetrics
     summary: str
+    growth_score: int | None = None
+    profitability_score: int | None = None
+    balance_sheet_score: int | None = None
+    valuation_score: int | None = None
+    cash_flow_score: int | None = None
+
+
+class DataQualitySummary(BaseModel):
+    score: int
+    status: Literal["usable", "limited", "insufficient"]
+    bars_count: int
+    latest_timestamp: str | None = None
+    warnings: list[str]
+
+
+class RiskSummary(BaseModel):
+    score: int
+    level: Literal["low", "moderate", "elevated", "high"]
+    atr_pct: float | None = None
+    realized_volatility_20d: float | None = None
+    realized_volatility_60d: float | None = None
+    max_drawdown_60d: float | None = None
+    average_dollar_volume_20d: float | None = None
+    warnings: list[str]
+
+
+class MarketContextSummary(BaseModel):
+    score: int
+    benchmark: str
+    relative_strength_20d: float | None = None
+    relative_strength_60d: float | None = None
+    summary: str
 
 
 class OverallSummary(BaseModel):
@@ -137,10 +174,13 @@ class AnalyzeResponse(BaseModel):
     timeframe: Timeframe
     horizon: Horizon
     generated_at: str
-    data_mode: Literal["live"]
+    data_mode: Literal["live", "unavailable", "mixed"]
     price_summary: PriceSummary
+    data_quality: DataQualitySummary
     technical: TechnicalAnalysis
+    risk: RiskSummary
     news: NewsSummary
     fundamentals: FundamentalsSummary
+    market_context: MarketContextSummary
     overall: OverallSummary
     disclaimer: str

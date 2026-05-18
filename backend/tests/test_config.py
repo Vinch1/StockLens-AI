@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.config import Settings
 
 
-def test_default_config_has_yfinance():
+def test_default_config_has_live_providers():
     settings = Settings()
     assert settings.MARKET_DATA_PROVIDER == "yfinance"
     assert settings.FUNDAMENTALS_PROVIDER == "yfinance"

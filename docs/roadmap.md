@@ -3,19 +3,20 @@
 ## Phase 0: Repository Foundation
 
 - Establish documentation for product boundaries, architecture, API contracts, compliance, security, and testing.
-- Add environment template, Docker Compose mock profile, and CI hygiene checks.
+- Add environment template, Docker Compose backend service, and CI hygiene checks.
 - Preserve educational-only positioning before implementation expands.
 
-## Phase 1: Mock Prototype
+## Phase 1: Live Provider Prototype
 
-- Implement backend health and mock snapshot endpoints.
-- Implement a client view with clear educational-only and mock-mode labels.
-- Add deterministic mock fixtures for tests and screenshots.
+- Implement backend health and analysis endpoints.
+- Implement a client view with clear educational-only and unavailable-provider labels.
+- Add deterministic in-memory test fixtures that are not exposed as product data.
 - Add contract tests for API response shapes.
+- Add data-quality, technical sub-score, risk, market-context, and horizon-aware composite scoring.
 
 ## Phase 2: Provider Integrations
 
-- Add optional market-data provider integration behind environment flags.
+- Improve market-data provider reliability and attribution.
 - Add optional AI explanation provider integration with safety wording.
 - Add provider attribution and delayed-data labels as required by licenses.
 - Expand logs and metrics while preserving redaction requirements.

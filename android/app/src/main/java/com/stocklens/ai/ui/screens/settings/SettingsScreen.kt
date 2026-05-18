@@ -68,7 +68,7 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = dataMode,
                         onValueChange = { dataMode = it },
-                        label = { Text("Data mode (mock / live)") },
+                        label = { Text("Data mode (live / mixed / unavailable)") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

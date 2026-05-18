@@ -1,6 +1,6 @@
 # StockLens AI API Contract
 
-All API responses are for educational research only and must not be presented as trading or investment instructions. Mock mode is the default until backend-only live providers are configured.
+All API responses are for educational research only and must not be presented as trading or investment instructions. Provider access is backend-only; the Android client must never call paid market, news, AI, or fundamentals providers directly.
 
 ## `GET /health`
 
@@ -31,7 +31,7 @@ Accepted timeframes: `15m`, `1h`, `4h`, `1D`, `1W`. Accepted horizons: `short`, 
 
 ### Response shape
 
-The response includes ticker metadata, `data_mode`, `price_summary`, `technical`, `news`, `fundamentals`, `overall`, and a visible disclaimer. Technical output includes SMA 20/50/200, EMA 12/26, RSI 14, MACD line/signal/histogram, Bollinger Bands, ATR 14, volume ratio, support/resistance, evidence, and risks.
+The response includes ticker metadata, `data_mode`, `price_summary`, `data_quality`, `technical`, `risk`, `news`, `fundamentals`, `market_context`, `overall`, and a visible disclaimer. Technical output includes SMA 20/50/200, EMA 12/26, RSI 14, MACD line/signal/histogram, Bollinger Bands, ATR 14, volume ratio, support/resistance, evidence, risks, and trend/momentum/structure/volume/volatility sub-scores.
 
 ```json
 {
@@ -40,11 +40,18 @@ The response includes ticker metadata, `data_mode`, `price_summary`, `technical`
   "timeframe": "1D",
   "horizon": "swing",
   "generated_at": "2026-05-18T12:00:00+00:00",
-  "data_mode": "mock",
+  "data_mode": "live",
   "price_summary": {
     "last_close": 123.45,
     "change_pct": 1.23,
     "volume": 123456789
+  },
+  "data_quality": {
+    "score": 100,
+    "status": "usable",
+    "bars_count": 260,
+    "latest_timestamp": "2026-05-18T00:00:00+00:00",
+    "warnings": []
   },
   "technical": {
     "setup": "neutral_to_bullish",
@@ -71,13 +78,28 @@ The response includes ticker metadata, `data_mode`, `price_summary`, `technical`
       "resistance": [126.0, 130.5]
     },
     "evidence": ["Price is above the 20-period and 50-period moving averages."],
-    "risks": ["Past performance does not guarantee future results."]
+    "risks": ["Past performance does not guarantee future results."],
+    "trend_score": 74,
+    "momentum_score": 62,
+    "structure_score": 70,
+    "volume_score": 58,
+    "volatility_score": 55
+  },
+  "risk": {
+    "score": 82,
+    "level": "low",
+    "atr_pct": 2.59,
+    "realized_volatility_20d": 24.5,
+    "realized_volatility_60d": 22.1,
+    "max_drawdown_60d": -8.4,
+    "average_dollar_volume_20d": 1234567890.0,
+    "warnings": []
   },
   "news": {
-    "sentiment": "mixed",
-    "score": -5,
+    "sentiment": "neutral",
+    "score": 0,
     "items": [],
-    "summary": "Recent demo headlines are mixed. No current live news is configured."
+    "summary": "News analysis is unavailable: NEWS_API_KEY is required for finnhub"
   },
   "fundamentals": {
     "quality": "unavailable",
@@ -87,9 +109,24 @@ The response includes ticker metadata, `data_mode`, `price_summary`, `technical`
       "earnings_growth": null,
       "free_cash_flow": null,
       "debt_to_equity": null,
-      "pe_ratio": null
+      "pe_ratio": null,
+      "forward_pe": null,
+      "gross_margin": null,
+      "operating_margin": null
     },
-    "summary": "Fundamental provider is not configured; using placeholder demo analysis."
+    "summary": "Fundamental data is unavailable from the configured provider.",
+    "growth_score": 50,
+    "profitability_score": 50,
+    "balance_sheet_score": 50,
+    "valuation_score": 50,
+    "cash_flow_score": 50
+  },
+  "market_context": {
+    "score": 64,
+    "benchmark": "SPY",
+    "relative_strength_20d": 3.2,
+    "relative_strength_60d": -1.1,
+    "summary": "Relative strength versus SPY is mixed."
   },
   "overall": {
     "label": "mixed_research_candidate",
@@ -124,17 +161,12 @@ Response:
 }
 ```
 
-## `GET /api/mock/ohlcv/{ticker}?timeframe=1D&bars=260`
-
-Returns deterministic mock OHLCV bars for development and tests. This endpoint does not claim to provide live prices.
-
 ## `GET /api/providers/status`
 
-Returns configured provider modes and whether live providers are available.
+Returns configured provider modes and whether providers are available. A missing Finnhub key reports the news provider as `unavailable`.
 
 ## Security and compliance requirements
 
 - API keys are backend-only and supplied through environment variables.
-- Mock headlines must be labeled as demo/mock and must not be presented as real news.
 - Screenshot parsing is assistive only and must require user confirmation.
 - The API must not return buy/sell commands, guaranteed-return language, or personalized investment recommendations.

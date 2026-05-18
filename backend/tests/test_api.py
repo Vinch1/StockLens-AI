@@ -4,7 +4,7 @@ from app.main import create_app
 from app.models import OHLCVBar
 from app.services.compliance import contains_forbidden_language, sanitize_or_fallback
 from app.services.indicators import compute_indicators, ema_series, rsi
-from app.services.scoring import technical_score
+from app.services.scoring import technical_score, technical_score_from_subscores, technical_subscores
 
 app = create_app()
 client = TestClient(app)
@@ -34,6 +34,9 @@ def test_indicator_known_values_and_score_bounds():
     assert rsi(closes) == 100.0
     score = technical_score(indicators, bars[-1].close, bars[-2].close, indicators.volume_ratio)
     assert 0 <= score <= 100
+    subscores = technical_subscores(indicators, bars[-1].close, bars[-2].close, __import__("app.services.indicators", fromlist=["support_resistance"]).support_resistance(bars))
+    assert set(subscores) == {"trend_score", "momentum_score", "structure_score", "volume_score", "volatility_score"}
+    assert 0 <= technical_score_from_subscores(subscores) <= 100
 
 
 def test_compliance_filter_rejects_forbidden_output():
@@ -50,35 +53,56 @@ def test_provider_status():
     assert "providers" in data
 
 
-def test_live_mode_response_has_disclaimer():
+def test_live_mode_response_has_disclaimer_and_new_sections():
     """Verify that with injected providers, disclaimer is always present."""
-    from unittest.mock import AsyncMock
-
+    from app.models import FundamentalMetrics, FundamentalsSummary, NewsSummary
     from app.providers import Providers
 
     test_app = create_app()
 
-    market = AsyncMock()
-    bars = [
-        OHLCVBar(timestamp=f"2024-01-{i+1:02d}T00:00:00", open=100 + i * 0.5, high=105 + i, low=98 + i, close=103 + i * 0.5, volume=1000 + i * 100)
-        for i in range(30)
-    ]
-    market.get_ohlcv.return_value = bars
-    market.mode = "live"
+    bars = []
+    for i in range(260):
+        open_price = 100 + i * 0.5
+        close = 103 + i * 0.5
+        bars.append(
+            OHLCVBar(
+                timestamp=f"2024-01-{i+1:02d}T00:00:00",
+                open=open_price,
+                high=max(open_price, close) + 2,
+                low=min(open_price, close) - 2,
+                close=close,
+                volume=1000 + i * 100,
+            )
+        )
 
-    news = AsyncMock()
-    news.get_news.return_value = __import__("app.models", fromlist=["NewsSummary"]).NewsSummary(
-        sentiment="neutral", score=0, items=[], summary="No news."
-    )
+    class FixtureMarketProvider:
+        mode = "live"
 
-    fundamentals = AsyncMock()
-    fundamentals.get_fundamentals.return_value = __import__("app.models", fromlist=["FundamentalsSummary"]).FundamentalsSummary(
-        quality="unavailable", score=50, metrics=__import__("app.models", fromlist=["FundamentalMetrics"]).FundamentalMetrics(),
-        summary="No fundamentals."
-    )
+        async def get_ohlcv(self, ticker: str, timeframe: str = "1D", bars_count: int = 260):
+            return bars
+
+    class FixtureNewsProvider:
+        mode = "live"
+
+        async def get_news(self, ticker: str) -> NewsSummary:
+            return NewsSummary(sentiment="neutral", score=0, items=[], summary="No news.")
+
+    class FixtureFundamentalsProvider:
+        mode = "live"
+
+        async def get_fundamentals(self, ticker: str) -> FundamentalsSummary:
+            return FundamentalsSummary(
+                quality="unavailable",
+                score=50,
+                metrics=FundamentalMetrics(),
+                summary="No fundamentals.",
+            )
 
     test_app.state.providers = Providers(
-        market=market, news=news, fundamentals=fundamentals, explanation=None
+        market=FixtureMarketProvider(),
+        news=FixtureNewsProvider(),
+        fundamentals=FixtureFundamentalsProvider(),
+        explanation=None,
     )
 
     test_client = TestClient(test_app)
@@ -90,3 +114,10 @@ def test_live_mode_response_has_disclaimer():
     payload = response.json()
     assert "not financial advice" in payload["disclaimer"].lower()
     assert payload["data_mode"] == "live"
+    assert payload["data_quality"]["status"] == "usable"
+    assert payload["risk"]["level"] in {"low", "moderate", "elevated", "high"}
+    assert payload["market_context"]["benchmark"] == "SPY"
+    assert payload["technical"]["trend_score"] is not None
+    assert "data_quality" in payload
+    assert "risk" in payload
+    assert "market_context" in payload

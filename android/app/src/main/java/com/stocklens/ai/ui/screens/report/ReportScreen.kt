@@ -16,8 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.stocklens.ai.ui.screens.EmptyState
 import com.stocklens.ai.ui.screens.ScreenScaffold
@@ -70,8 +73,8 @@ fun ReportScreen(analyzeUiState: AnalyzeUiState, paddingValues: PaddingValues) {
                     }
                 }
 
-                if (report.dataMode == "mock") {
-                    InfoBanner("Demo data is being used. Configure a live data provider for real market data.")
+                if (report.dataMode == "unavailable" || report.dataMode == "mixed") {
+                    InfoBanner("Some provider data is unavailable. Review provider status and verify data before drawing conclusions.")
                 }
 
                 ScoreCard(
@@ -85,6 +88,15 @@ fun ReportScreen(analyzeUiState: AnalyzeUiState, paddingValues: PaddingValues) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                SectionCard("Data Quality", Icons.Outlined.BarChart) {
+                    ScoreLine("Quality score", report.dataQuality.score)
+                    Spacer(Modifier.height(8.dp))
+                    MetricRow("Status", report.dataQuality.status)
+                    MetricRow("Bars", report.dataQuality.barsCount.toString())
+                    MetricRow("Latest", report.dataQuality.latestTimestamp ?: "Unavailable")
+                    WarningList(report.dataQuality.warnings)
+                }
 
                 SectionCard("Technical Setup", Icons.Default.ShowChart) {
                     Text(
@@ -102,6 +114,12 @@ fun ReportScreen(analyzeUiState: AnalyzeUiState, paddingValues: PaddingValues) {
                     Spacer(Modifier.height(8.dp))
                     Text("Support: ${report.technical.supportResistance.support.joinToString()}", style = MaterialTheme.typography.bodySmall, color = Bullish)
                     Text("Resistance: ${report.technical.supportResistance.resistance.joinToString()}", style = MaterialTheme.typography.bodySmall, color = Bearish)
+                    Spacer(Modifier.height(12.dp))
+                    SubScoreLine("Trend", report.technical.trendScore)
+                    SubScoreLine("Momentum", report.technical.momentumScore)
+                    SubScoreLine("Structure", report.technical.structureScore)
+                    SubScoreLine("Volume", report.technical.volumeScore)
+                    SubScoreLine("Volatility", report.technical.volatilityScore)
                 }
 
                 SectionCard("Evidence", Icons.Default.Info) {
@@ -124,9 +142,39 @@ fun ReportScreen(analyzeUiState: AnalyzeUiState, paddingValues: PaddingValues) {
                     Text("${report.fundamentals.quality} · Score ${report.fundamentals.score}/100", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(4.dp))
                     Text(report.fundamentals.summary, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(12.dp))
+                    SubScoreLine("Growth", report.fundamentals.growthScore)
+                    SubScoreLine("Profitability", report.fundamentals.profitabilityScore)
+                    SubScoreLine("Balance sheet", report.fundamentals.balanceSheetScore)
+                    SubScoreLine("Valuation", report.fundamentals.valuationScore)
+                    SubScoreLine("Cash flow", report.fundamentals.cashFlowScore)
+                    Spacer(Modifier.height(8.dp))
+                    MetricRow("Revenue growth", formatMetric(report.fundamentals.metrics.revenueGrowth, "%"))
+                    MetricRow("Earnings growth", formatMetric(report.fundamentals.metrics.earningsGrowth, "%"))
+                    MetricRow("Debt/equity", formatMetric(report.fundamentals.metrics.debtToEquity))
+                    MetricRow("Forward P/E", formatMetric(report.fundamentals.metrics.forwardPe))
+                }
+
+                SectionCard("Market Context", Icons.Default.Public) {
+                    ScoreLine("Context score", report.marketContext.score)
+                    Spacer(Modifier.height(8.dp))
+                    MetricRow("Benchmark", report.marketContext.benchmark)
+                    MetricRow("20D relative strength", formatMetric(report.marketContext.relativeStrength20d, "%"))
+                    MetricRow("60D relative strength", formatMetric(report.marketContext.relativeStrength60d, "%"))
+                    Spacer(Modifier.height(4.dp))
+                    Text(report.marketContext.summary, style = MaterialTheme.typography.bodySmall)
                 }
 
                 SectionCard("Risk Factors", Icons.Default.Warning) {
+                    Text("${report.risk.level} · Score ${report.risk.score}/100", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(8.dp))
+                    MetricRow("ATR %", formatMetric(report.risk.atrPct, "%"))
+                    MetricRow("20D volatility", formatMetric(report.risk.realizedVolatility20d, "%"))
+                    MetricRow("60D volatility", formatMetric(report.risk.realizedVolatility60d, "%"))
+                    MetricRow("60D max drawdown", formatMetric(report.risk.maxDrawdown60d, "%"))
+                    MetricRow("20D avg dollar volume", formatCurrency(report.risk.averageDollarVolume20d))
+                    WarningList(report.risk.warnings)
+                    Spacer(Modifier.height(8.dp))
                     report.technical.risks.forEach { risk ->
                         Text("• $risk", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
@@ -180,7 +228,7 @@ private fun ScoreCard(title: String, icon: ImageVector, label: String, score: In
             }
             Spacer(Modifier.height(8.dp))
             LinearProgressIndicator(
-                progress = { score / 100f },
+                progress = { score.coerceIn(0, 100) / 100f },
                 modifier = Modifier.fillMaxWidth(),
                 color = scoreColor(score),
                 trackColor = MaterialTheme.colorScheme.outline,
@@ -226,4 +274,73 @@ private fun scoreColor(score: Int): Color {
         score >= 40 -> Neutral
         else -> Bearish
     }
+}
+
+@Composable
+private fun ScoreLine(label: String, score: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            Text("$score/100", style = MaterialTheme.typography.labelLarge, color = scoreColor(score))
+        }
+        LinearProgressIndicator(
+            progress = { score.coerceIn(0, 100) / 100f },
+            modifier = Modifier.fillMaxWidth(),
+            color = scoreColor(score),
+            trackColor = MaterialTheme.colorScheme.outlineVariant,
+            strokeCap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+private fun SubScoreLine(label: String, score: Int?) {
+    if (score == null) return
+    ScoreLine(label, score)
+    Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun MetricRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = value,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun WarningList(warnings: List<String>) {
+    if (warnings.isEmpty()) return
+    Spacer(Modifier.height(8.dp))
+    warnings.forEach { warning ->
+        Text("• $warning", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    }
+}
+
+private fun formatMetric(value: Double?, suffix: String = ""): String {
+    return value?.let { "%.2f%s".format(it, suffix) } ?: "Unavailable"
+}
+
+private fun formatCurrency(value: Double?): String {
+    return value?.let { "\$%,.0f".format(it) } ?: "Unavailable"
 }

@@ -14,6 +14,16 @@ class TestProviderFactory:
         providers = create_providers(settings)
         assert providers.market.mode == "live"
 
+    def test_default_providers_are_live_or_unavailable_without_news_key(self):
+        from app.config import Settings
+        from app.providers import create_providers
+
+        settings = Settings()
+        providers = create_providers(settings)
+        assert providers.market.mode == "live"
+        assert providers.news.mode == "unavailable"
+        assert providers.fundamentals.mode == "live"
+
     def test_finnhub_news_provider_created(self):
         from app.config import Settings
         from app.providers import create_providers
@@ -117,7 +127,7 @@ class TestCache:
             r2 = await aget_with_cache(cache, ("test", "key"), fetcher, ttl=60)
             return r1, r2
 
-        r1, r2 = asyncio.get_event_loop().run_until_complete(run())
+        r1, r2 = asyncio.run(run())
         assert r1 == "cached_value"
         assert r2 == "cached_value"
         assert call_count == 1

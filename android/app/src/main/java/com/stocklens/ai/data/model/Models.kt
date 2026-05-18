@@ -46,7 +46,12 @@ data class TechnicalAnalysis(
     val indicators: IndicatorSummary,
     @SerializedName("support_resistance") val supportResistance: SupportResistance,
     val evidence: List<String>,
-    val risks: List<String>
+    val risks: List<String>,
+    @SerializedName("trend_score") val trendScore: Int? = null,
+    @SerializedName("momentum_score") val momentumScore: Int? = null,
+    @SerializedName("structure_score") val structureScore: Int? = null,
+    @SerializedName("volume_score") val volumeScore: Int? = null,
+    @SerializedName("volatility_score") val volatilityScore: Int? = null
 )
 
 data class NewsItem(
@@ -81,6 +86,38 @@ data class FundamentalsSummary(
     val quality: String,
     val score: Int,
     val metrics: FundamentalMetrics,
+    val summary: String,
+    @SerializedName("growth_score") val growthScore: Int? = null,
+    @SerializedName("profitability_score") val profitabilityScore: Int? = null,
+    @SerializedName("balance_sheet_score") val balanceSheetScore: Int? = null,
+    @SerializedName("valuation_score") val valuationScore: Int? = null,
+    @SerializedName("cash_flow_score") val cashFlowScore: Int? = null
+)
+
+data class DataQualitySummary(
+    val score: Int,
+    val status: String,
+    @SerializedName("bars_count") val barsCount: Int,
+    @SerializedName("latest_timestamp") val latestTimestamp: String? = null,
+    val warnings: List<String> = emptyList()
+)
+
+data class RiskSummary(
+    val score: Int,
+    val level: String,
+    @SerializedName("atr_pct") val atrPct: Double? = null,
+    @SerializedName("realized_volatility_20d") val realizedVolatility20d: Double? = null,
+    @SerializedName("realized_volatility_60d") val realizedVolatility60d: Double? = null,
+    @SerializedName("max_drawdown_60d") val maxDrawdown60d: Double? = null,
+    @SerializedName("average_dollar_volume_20d") val averageDollarVolume20d: Double? = null,
+    val warnings: List<String> = emptyList()
+)
+
+data class MarketContextSummary(
+    val score: Int,
+    val benchmark: String,
+    @SerializedName("relative_strength_20d") val relativeStrength20d: Double? = null,
+    @SerializedName("relative_strength_60d") val relativeStrength60d: Double? = null,
     val summary: String
 )
 
@@ -99,9 +136,12 @@ data class AnalyzeResponse(
     @SerializedName("generated_at") val generatedAt: String,
     @SerializedName("data_mode") val dataMode: String,
     @SerializedName("price_summary") val priceSummary: PriceSummary,
+    @SerializedName("data_quality") val dataQuality: DataQualitySummary,
     val technical: TechnicalAnalysis,
+    val risk: RiskSummary,
     val news: NewsSummary,
     val fundamentals: FundamentalsSummary,
+    @SerializedName("market_context") val marketContext: MarketContextSummary,
     val overall: OverallSummary,
     val disclaimer: String
 )
@@ -116,7 +156,7 @@ data class WatchlistItem(
 data class UserSettings(
     val onboardingComplete: Boolean = false,
     val apiBaseUrl: String = "http://10.0.2.2:8000/",
-    val dataMode: String = "mock",
+    val dataMode: String = "live",
     val defaultTimeframe: String = "1D",
     val defaultHorizon: String = "swing",
     val darkMode: Boolean = false

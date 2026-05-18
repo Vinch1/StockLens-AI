@@ -1,14 +1,16 @@
 # StockLens AI
 
-StockLens AI is a production-minded MVP for an **educational stock research and risk-analysis assistant**. It helps users review mock or configured stock data, technical indicators, news catalysts, long-term fundamental context, and risk factors without giving stock-picking, auto-trading, or individualized investment advice.
+StockLens AI is a production-minded MVP for an **educational stock research and risk-analysis assistant**. It helps users review configured market data, technical indicators, news catalysts, long-term fundamental context, and risk factors without giving stock-picking, auto-trading, or individualized investment advice.
 
 > **Educational information only. Not financial advice.** Markets involve risk. Verify all data before making decisions and consult a qualified professional where appropriate.
 
 ## What is included
 
-- **Backend:** Python FastAPI service with `/health`, `/api/analyze`, `/api/parse-screenshot`, `/api/mock/ohlcv/{ticker}`, and `/api/providers/status`.
-- **Technical analysis:** deterministic SMA, EMA, RSI, MACD, Bollinger Bands, ATR, volume ratio, and support/resistance approximations.
-- **Providers:** mock market data, mock news catalysts, and mock fundamentals by default; provider status clearly labels mock/live readiness.
+- **Backend:** Python FastAPI service with `/health`, `/api/analyze`, `/api/parse-screenshot`, and `/api/providers/status`.
+- **Technical analysis:** deterministic SMA, EMA, RSI, MACD, Bollinger Bands, ATR, volume ratio, support/resistance approximations, and trend/momentum/structure/volume/volatility sub-scores.
+- **Risk and context:** data-quality checks, ATR percentage, realized volatility, drawdown, liquidity risk, and relative strength versus SPY.
+- **Horizon-aware scoring:** short, swing, and long horizons use different technical/fundamental/risk/news/market-context weights.
+- **Providers:** live/delayed market data and fundamentals through yfinance, plus Finnhub news when `NEWS_API_KEY` is configured.
 - **Compliance controls:** deterministic explanations, forbidden-phrase filtering, visible disclaimers, and no buy/sell command language.
 - **Android skeleton:** native Kotlin + Jetpack Compose, MVVM, Compose Navigation, Retrofit/OkHttp, DataStore, onboarding disclaimer, manual analysis, screenshot-confirmation placeholder, report, watchlist, settings/about.
 - **Docs:** product spec, architecture, API contract, compliance notes, security/privacy notes, test plan, and roadmap.
@@ -62,18 +64,55 @@ The backend listens on <http://localhost:8000>.
 
 ## Run the Android app
 
-Open `android/` in Android Studio or run from a compatible Android/Gradle environment:
+Start the backend first, then open `android/` in Android Studio and run the `app` configuration on an emulator or connected device.
+
+From the command line, build, install, and launch the frontend with:
 
 ```bash
 cd android
-gradle :app:assembleDebug
+./gradlew :app:assembleDebug
+./gradlew :app:installDebug
+adb shell am start -n com.stocklens.ai/.MainActivity
 ```
 
-The Android emulator default backend URL is `http://10.0.2.2:8000/`. Keep live provider API keys on the backend only; do not put secrets in Android resources or Kotlin source.
+The Android emulator default backend URL is `http://10.0.2.2:8000/`, which maps to the host machine's `localhost:8000`. For a physical device, run the backend on a reachable host interface and set the app's API base URL to that machine's LAN address, such as `http://192.168.1.10:8000/`.
 
-## Mock mode and future live data
+Keep live provider API keys on the backend only; do not put secrets in Android resources or Kotlin source.
 
-Mock mode is the default and requires no credentials. Mock outputs are clearly labeled as demo data. Future live providers should be enabled only through backend environment variables copied from `.env.example`, for example `MARKET_DATA_API_KEY`, `NEWS_API_KEY`, or `FUNDAMENTALS_API_KEY`.
+## Live Data Setup
+
+The backend is configured for real provider integrations by default. yfinance supplies market data and fundamentals without an API key. Finnhub news requires `NEWS_API_KEY`; if the key is absent, the news provider is reported as unavailable and analysis continues with a neutral unavailable-news summary.
+
+Create a local environment file:
+
+```bash
+cp .env.example .env
+```
+
+Then set:
+
+```env
+MARKET_DATA_PROVIDER=yfinance
+NEWS_PROVIDER=finnhub
+NEWS_API_KEY=your_finnhub_key
+FUNDAMENTALS_PROVIDER=yfinance
+```
+
+Optional AI explanations require backend-only AI settings such as `AI_PROVIDER=openai`, `AI_API_KEY=...`, and `AI_MODEL=...`. Do not put provider keys in Android resources or Kotlin source.
+
+## Analysis method
+
+`/api/analyze` returns a structured educational report. The backend now separates scoring into:
+
+- **Data quality:** usable/limited/insufficient status based on bar count and OHLCV sanity checks.
+- **Technical setup:** trend, momentum, price structure, volume confirmation, and volatility sub-scores.
+- **Risk:** ATR percentage, realized volatility, recent drawdown, and average dollar volume.
+- **Fundamentals:** growth, profitability, balance sheet, valuation, and cash-flow sub-scores when available.
+- **News catalysts:** live provider summary, sentiment, and catalyst items when configured.
+- **Market context:** relative strength versus SPY over available 20-bar and 60-bar windows.
+- **Overall:** horizon-aware composite score, confidence, educational label, and disclaimer.
+
+The report is a research aid only. It does not predict returns, rank investments, or instruct users to buy, sell, hold, short, or allocate capital.
 
 ## Documentation
 

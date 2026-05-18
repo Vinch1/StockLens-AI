@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Lightweight wrapper shim for this MVP environment. Replace with the official Gradle wrapper
+# (`gradle wrapper`) before production release so developers do not need a system Gradle install.
+exec gradle "$@"

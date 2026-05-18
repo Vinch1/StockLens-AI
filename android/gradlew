@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+set -eu
+
+# StockLens AI lightweight Gradle bootstrapper.
+# Prefer an installed Gradle when available; otherwise download Gradle locally so
+# contributors can run ./gradlew without first installing Gradle system-wide.
+GRADLE_VERSION="8.14.4"
+DIST_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+GRADLE_USER_HOME="${GRADLE_USER_HOME:-$APP_HOME/.gradle}"
+LOCAL_GRADLE="$GRADLE_USER_HOME/wrapper/dists/gradle-${GRADLE_VERSION}/gradle-${GRADLE_VERSION}/bin/gradle"
+ZIP_PATH="$GRADLE_USER_HOME/wrapper/dists/gradle-${GRADLE_VERSION}-bin.zip"
+
+if command -v gradle >/dev/null 2>&1; then
+  exec gradle "$@"
+fi
+
+if [ ! -x "$LOCAL_GRADLE" ]; then
+  mkdir -p "$(dirname "$ZIP_PATH")"
+  if [ ! -f "$ZIP_PATH" ]; then
+    if command -v curl >/dev/null 2>&1; then
+      curl -L --fail --output "$ZIP_PATH" "$DIST_URL"
+    elif command -v wget >/dev/null 2>&1; then
+      wget -O "$ZIP_PATH" "$DIST_URL"
+    else
+      echo "Gradle is not installed, and neither curl nor wget is available to download it." >&2
+      echo "Install Android Studio or Gradle ${GRADLE_VERSION}, then rerun ./gradlew." >&2
+      exit 1
+    fi
+  fi
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q -o "$ZIP_PATH" -d "$GRADLE_USER_HOME/wrapper/dists/gradle-${GRADLE_VERSION}"
+  else
+    echo "Gradle download succeeded, but unzip is not available." >&2
+    echo "Install unzip or install Android Studio/Gradle ${GRADLE_VERSION}, then rerun ./gradlew." >&2
+    exit 1
+  fi
+fi
+
+exec "$LOCAL_GRADLE" "$@"

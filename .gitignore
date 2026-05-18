@@ -216,3 +216,40 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- StockLens-AI project hygiene ---
+# Local secrets and environment overrides
+.env.*
+!.env.example
+*.local
+
+# Logs and runtime state
+logs/
+*.log.*
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Node / web tooling
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.next/
+out/
+
+# Android / Gradle outputs
+.gradle/
+**/build/
+local.properties
+captures/
+*.keystore
+*.jks
+
+# Demo captures can contain private data; use mock/redacted assets intentionally if needed.
+screenshots/
+recordings/
+*.webm
+*.mp4

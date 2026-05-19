@@ -42,7 +42,7 @@ The Android app posts `AnalyzeRequest` JSON to `/api/analyze` and renders the st
 
 ## Provider strategy
 
-Providers are backend-only and configured through environment variables such as `MARKET_DATA_PROVIDER`, `NEWS_PROVIDER`, `NEWS_API_KEY`, `FUNDAMENTALS_PROVIDER`, optional AI settings, and optional `CHART_VISION_*` settings. Provider status must disclose whether each provider is live or unavailable. Missing optional providers should be reflected in the response instead of hidden.
+Providers are backend-only and configured through environment variables such as `MARKET_DATA_PROVIDER`, `NEWS_PROVIDER`, `NEWS_API_KEY`, `FUNDAMENTALS_PROVIDER`, optional AI settings, and optional `CHART_VISION_*` settings. Chart vision supports Qwen through an OpenAI-compatible endpoint using `CHART_VISION_PROVIDER=qwen`, `CHART_VISION_MODEL=qwen3.6-plus`, and optional `CHART_VISION_BASE_URL`. Provider status must disclose whether each provider is live or unavailable. Missing optional providers should be reflected in the response instead of hidden.
 
 ## Analysis strategy
 

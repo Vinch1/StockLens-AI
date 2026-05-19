@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from app.providers.litellm_logging import suppress_litellm_optional_dependency_warnings
+
+suppress_litellm_optional_dependency_warnings()
+
 import litellm
 
 from app.providers.errors import ProviderError, ProviderUnavailableError
@@ -34,19 +38,26 @@ class AIExplanationProvider:
         fundamentals_summary: str = "",
     ) -> str:
         system_prompt = (
-            "You are a stock research summarizer.\n\n"
-            "Rules:\n"
-            "- Keep response to 3-4 sentences maximum\n"
-            "- Focus on the technical setup, risks, news context, and fundamentals context"
+            "You summarize structured stock research data for an app report.\n"
+            "Use only the values provided by the user message. Do not invent prices, news, "
+            "fundamental metrics, events, certainty, or future outcomes.\n\n"
+            "Output rules:\n"
+            "- Return plain text only, not Markdown, JSON, bullets, or headings.\n"
+            "- Write 2 to 4 concise sentences.\n"
+            "- Mention the setup, score, and confidence.\n"
+            "- Mention news and fundamentals only when they are included.\n"
+            "- Include the main risk or uncertainty when confidence is low or signals are mixed.\n"
+            "- Do not give instructions about position sizing, brokerage actions, or portfolio allocation."
         )
 
         user_message = (
-            "Analyze this stock research data and provide a summary:\n"
+            "Summarize this stock research data:\n"
             f"- Technical setup: {setup}\n"
             f"- Overall score: {score}/100\n"
             f"- Confidence: {confidence}\n"
             f"- News context: {news_summary or 'Not included'}\n"
-            f"- Fundamentals: {fundamentals_summary or 'Not included'}"
+            f"- Fundamentals: {fundamentals_summary or 'Not included'}\n\n"
+            "If a field says 'Not included', do not discuss that section."
         )
 
         try:

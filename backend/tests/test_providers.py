@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import pytest
 
@@ -66,6 +67,46 @@ class TestProviderFactory:
         providers = create_providers(settings)
         assert providers.explanation is None
 
+    def test_qwen_chart_vision_provider_created(self):
+        from app.config import Settings
+        from app.providers import create_providers
+
+        settings = Settings(
+            CHART_VISION_PROVIDER="qwen",
+            CHART_VISION_API_KEY="test-key",
+            CHART_VISION_MODEL="qwen3.6-plus",
+        )
+        providers = create_providers(settings)
+
+        assert providers.chart_vision is not None
+        assert providers.chart_vision.mode == "live"
+        assert "qwen" in providers.chart_vision.status()["message"]
+
+    def test_qwen_chart_vision_provider_uses_openai_compatible_base_url(self):
+        from app.providers.chart_metadata_provider import VLMChartMetadataProvider
+
+        provider = VLMChartMetadataProvider(
+            api_key="test-key",
+            model="qwen3.6-plus",
+            provider="qwen",
+        )
+
+        assert provider._litellm_model == "openai/qwen3.6-plus"
+        assert provider.api_base == "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+
+    def test_qwen_chart_vision_provider_allows_base_url_override(self):
+        from app.providers.chart_metadata_provider import VLMChartMetadataProvider
+
+        provider = VLMChartMetadataProvider(
+            api_key="test-key",
+            model="qwen3-vl-flash",
+            provider="qwen",
+            api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
+
+        assert provider._litellm_model == "openai/qwen3-vl-flash"
+        assert provider.api_base == "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
     def test_unknown_provider_raises(self):
         from app.config import Settings
         from app.providers import create_providers
@@ -73,6 +114,92 @@ class TestProviderFactory:
         settings = Settings(MARKET_DATA_PROVIDER="nonexistent")
         with pytest.raises(ValueError, match="Unknown market data provider"):
             create_providers(settings)
+
+
+class TestChartMetadataParsing:
+    def test_parse_hints_json_tolerates_fenced_json_and_filters_bad_values(self):
+        from app.providers.chart_metadata_provider import _parse_hints_json
+
+        hints = _parse_hints_json(
+            """
+            ```json
+            {
+              "detected_ticker": " AAPL ",
+              "detected_timeframe": " 1D ",
+              "chart_bounds": ["10", 20.8, 300, 400],
+              "price_axis_labels": [
+                {"value": "180.50", "y": "42"},
+                {"value": "$bad", "y": 80},
+                {"value": 170, "y": null},
+                "ignore me"
+              ],
+              "extra": "ignored"
+            }
+            ```
+            """
+        )
+
+        assert hints.detected_ticker == "AAPL"
+        assert hints.detected_timeframe == "1D"
+        assert hints.chart_bounds == (10, 20, 300, 400)
+        assert len(hints.price_axis_labels) == 1
+        assert hints.price_axis_labels[0].value == 180.5
+        assert hints.price_axis_labels[0].y == 42
+
+    def test_parse_hints_json_rejects_invalid_shapes_without_crashing(self):
+        from app.providers.chart_metadata_provider import _parse_hints_json
+
+        hints = _parse_hints_json(
+            """
+            {
+              "detected_ticker": 123,
+              "detected_timeframe": [],
+              "chart_bounds": ["left", 20, 300],
+              "price_axis_labels": [{"value": "bad", "y": "also bad"}]
+            }
+            """
+        )
+
+        assert hints.detected_ticker is None
+        assert hints.detected_timeframe is None
+        assert hints.chart_bounds is None
+        assert hints.price_axis_labels == []
+
+
+class TestLiteLLMLogging:
+    def test_suppresses_only_optional_aws_dependency_warnings(self):
+        from app.providers.litellm_logging import suppress_litellm_optional_dependency_warnings
+
+        logger = logging.getLogger("LiteLLM")
+        suppress_litellm_optional_dependency_warnings()
+        filter_count = sum(1 for log_filter in logger.filters if getattr(log_filter, "_stocklens_filter", False))
+
+        suppress_litellm_optional_dependency_warnings()
+
+        assert sum(1 for log_filter in logger.filters if getattr(log_filter, "_stocklens_filter", False)) == filter_count
+
+        log_filter = next(log_filter for log_filter in logger.filters if getattr(log_filter, "_stocklens_filter", False))
+        bedrock_record = logging.LogRecord(
+            name="LiteLLM",
+            level=logging.WARNING,
+            pathname="common_utils.py",
+            lineno=979,
+            msg="litellm: could not pre-load bedrock-runtime response stream shape",
+            args=(),
+            exc_info=None,
+        )
+        other_record = logging.LogRecord(
+            name="LiteLLM",
+            level=logging.WARNING,
+            pathname="provider.py",
+            lineno=1,
+            msg="litellm: real provider warning",
+            args=(),
+            exc_info=None,
+        )
+
+        assert not log_filter.filter(bedrock_record)
+        assert log_filter.filter(other_record)
 
 
 class TestCache:

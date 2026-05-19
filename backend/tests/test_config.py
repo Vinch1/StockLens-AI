@@ -31,8 +31,10 @@ def test_empty_api_keys_default_to_blank(monkeypatch):
     monkeypatch.delenv("NEWS_API_KEY", raising=False)
     monkeypatch.delenv("AI_API_KEY", raising=False)
     monkeypatch.delenv("CHART_VISION_API_KEY", raising=False)
+    monkeypatch.delenv("CHART_VISION_BASE_URL", raising=False)
     settings = Settings()
     assert settings.MARKET_DATA_API_KEY == ""
     assert settings.NEWS_API_KEY == ""
     assert settings.AI_API_KEY == ""
     assert settings.CHART_VISION_API_KEY == ""
+    assert settings.CHART_VISION_BASE_URL == ""

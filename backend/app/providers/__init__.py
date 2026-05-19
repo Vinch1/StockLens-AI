@@ -76,6 +76,7 @@ def _create_chart_metadata_provider(settings: Settings) -> ChartMetadataProvider
             api_key=settings.CHART_VISION_API_KEY,
             model=settings.CHART_VISION_MODEL,
             provider=settings.CHART_VISION_PROVIDER,
+            api_base=settings.CHART_VISION_BASE_URL,
         )
     return None
 

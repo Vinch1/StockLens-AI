@@ -97,7 +97,16 @@ FUNDAMENTALS_PROVIDER=yfinance
 
 Optional AI explanations require backend-only AI settings such as `AI_PROVIDER=openai`, `AI_API_KEY=...`, and `AI_MODEL=...`. Do not put provider keys in Android resources or Kotlin source.
 
-Optional VLM-assisted chart metadata uses `CHART_VISION_PROVIDER`, `CHART_VISION_API_KEY`, and `CHART_VISION_MODEL`. The VLM may help identify visible ticker/timeframe, chart bounds, and price-axis labels, but candle OHLC reconstruction and signal scoring remain deterministic.
+Optional VLM-assisted chart metadata uses `CHART_VISION_PROVIDER`, `CHART_VISION_API_KEY`, `CHART_VISION_MODEL`, and optional `CHART_VISION_BASE_URL`. The VLM may help identify visible ticker/timeframe, chart bounds, and price-axis labels, but candle OHLC reconstruction and signal scoring remain deterministic. For Qwen Cloud:
+
+```env
+CHART_VISION_PROVIDER=qwen
+CHART_VISION_API_KEY=your_qwen_key
+CHART_VISION_MODEL=qwen3.6-plus
+CHART_VISION_BASE_URL=
+```
+
+Leave `CHART_VISION_BASE_URL` blank to use `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`; set it explicitly for another OpenAI-compatible Qwen endpoint.
 
 ## Analysis method
 

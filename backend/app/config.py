@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     VISION_PROVIDER: str = "tesseract"
     CHART_VISION_PROVIDER: str = ""
     CHART_VISION_API_KEY: str = ""
-    CHART_VISION_MODEL: str = "gpt-4o-mini"
+    CHART_VISION_MODEL: str = "qwen3.6-plus"
+    CHART_VISION_BASE_URL: str = ""
 
     def get_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

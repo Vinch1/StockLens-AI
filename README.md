@@ -51,6 +51,29 @@ cd backend
 uv run pytest -q
 ```
 
+## Run live API request scripts
+
+The scripts in `backend/tests/*_request.py` behave like a frontend client: they send HTTP requests to a running backend and print the JSON response.
+
+Start the backend:
+
+```bash
+cd backend
+uv run uvicorn app.main:app --reload
+```
+
+Then run the request scripts from another terminal:
+
+```bash
+cd backend
+uv run python tests/health_request.py
+uv run python tests/providers_status_request.py
+uv run python tests/analyze_request.py --ticker AAPL
+uv run python tests/parse_screenshot_request.py tests/chart.png
+```
+
+For `/api/parse-screenshot`, place a `.png`, `.jpg`, `.jpeg`, or `.webp` chart image in `backend/tests`. If only one image is present, the image path can be omitted.
+
 ## Docker Compose
 
 ```bash

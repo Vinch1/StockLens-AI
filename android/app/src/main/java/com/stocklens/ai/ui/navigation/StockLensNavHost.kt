@@ -36,6 +36,7 @@ fun StockLensNavHost(viewModel: StockLensViewModel) {
     val navController = rememberNavController()
     val appUiState by viewModel.appUiState.collectAsState()
     val analyzeUiState by viewModel.analyzeUiState.collectAsState()
+    val screenshotUiState by viewModel.screenshotUiState.collectAsState()
     val startDestination = if (appUiState.settings.onboardingComplete) Destination.Home.route else Destination.Onboarding.route
 
     if (appUiState.isLoading) {
@@ -129,7 +130,16 @@ fun StockLensNavHost(viewModel: StockLensViewModel) {
                 )
             }
             composable(Destination.ScreenshotConfirm.route) {
-                ScreenshotConfirmationScreen(paddingValues = paddingValues) { navController.popBackStack() }
+                ScreenshotConfirmationScreen(
+                    screenshotUiState = screenshotUiState,
+                    paddingValues = paddingValues,
+                    onImageSelected = viewModel::parseScreenshot,
+                    onUseDetectedFields = {
+                        viewModel.applyScreenshotDetectionToForm()
+                        navController.popBackStack()
+                    },
+                    onDone = { navController.popBackStack() }
+                )
             }
             composable(Destination.Report.route) {
                 ReportScreen(analyzeUiState = analyzeUiState, paddingValues = paddingValues)

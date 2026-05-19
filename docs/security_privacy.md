@@ -13,6 +13,8 @@ Use `.env.example` as the documented template and keep local `.env` files untrac
 
 Live provider configuration must stay on the backend. Do not put provider keys in Android resources, Kotlin source, screenshots, or client logs.
 
+Screenshot uploads are processed in memory for OCR, optional VLM metadata, candle extraction, and signal scoring. Do not persist raw screenshot bytes unless a future feature adds explicit retention controls and user consent.
+
 Sensitive examples:
 
 - AI provider keys.

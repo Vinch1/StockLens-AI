@@ -1,6 +1,6 @@
 # StockLens AI API Contract
 
-All API responses are for educational research only and must not be presented as trading or investment instructions. Provider access is backend-only; the Android client must never call paid market, news, AI, or fundamentals providers directly.
+Provider access is backend-only; the Android client must never call paid market, news, AI, fundamentals, or VLM providers directly.
 
 ## `GET /health`
 
@@ -31,7 +31,7 @@ Accepted timeframes: `15m`, `1h`, `4h`, `1D`, `1W`. Accepted horizons: `short`, 
 
 ### Response shape
 
-The response includes ticker metadata, `data_mode`, `price_summary`, `data_quality`, `technical`, `risk`, `news`, `fundamentals`, `market_context`, `overall`, and a visible disclaimer. Technical output includes SMA 20/50/200, EMA 12/26, RSI 14, MACD line/signal/histogram, Bollinger Bands, ATR 14, volume ratio, support/resistance, evidence, risks, and trend/momentum/structure/volume/volatility sub-scores.
+The response includes ticker metadata, `data_mode`, `price_summary`, `data_quality`, `technical`, `risk`, `news`, `fundamentals`, `market_context`, and `overall`. Technical output includes SMA 20/50/200, EMA 12/26, RSI 14, MACD line/signal/histogram, Bollinger Bands, ATR, volume ratio, support/resistance, evidence, risks, and trend/momentum/structure/volume/volatility sub-scores.
 
 ```json
 {
@@ -132,20 +132,19 @@ The response includes ticker metadata, `data_mode`, `price_summary`, `data_quali
     "label": "mixed_research_candidate",
     "score": 61,
     "confidence": "low",
-    "educational_conclusion": "This is a mixed research candidate, not a recommendation."
-  },
-  "disclaimer": "Educational information only. Not financial advice. Markets involve risk. Verify all data before making decisions."
+    "conclusion": "This is a mixed research candidate. The technical setup is neutral to bullish, with low confidence based on configured data."
+  }
 }
 ```
 
 ## `POST /api/parse-screenshot`
 
-JSON placeholder request for the MVP:
+Uploads a candlestick screenshot as base64. The backend processes the image in memory, extracts visible ticker/timeframe metadata when possible, reconstructs approximate candles from the screenshot, and returns a chart-derived technical signal. The endpoint does not call yfinance, news, or fundamentals providers.
 
 ```json
 {
   "filename": "chart.png",
-  "image_base64": null
+  "image_base64": "iVBORw0KGgo..."
 }
 ```
 
@@ -153,20 +152,50 @@ Response:
 
 ```json
 {
-  "detected_ticker": null,
-  "detected_timeframe": null,
-  "confidence": "low",
+  "detected_ticker": "AAPL",
+  "detected_timeframe": "1D",
+  "confidence": "medium",
   "needs_confirmation": true,
-  "notes": "Screenshot parsing is assistive only. Confirm ticker and timeframe before analysis. Price analysis is calculated from configured market data, not from the screenshot image."
+  "notes": "Detected ticker: AAPL. Detected timeframe: 1D. Screenshot-derived candles are approximate. Confirm ticker and timeframe, and verify the source chart before using the signal.",
+  "extraction": {
+    "candle_count": 62,
+    "calibration_confidence": "medium",
+    "warnings": []
+  },
+  "candles": [
+    {
+      "index": 0,
+      "timestamp_label": null,
+      "open": 178.12,
+      "high": 180.22,
+      "low": 177.64,
+      "close": 179.8,
+      "direction": "bullish",
+      "confidence": "medium"
+    }
+  ],
+  "signal": {
+    "action": "buy",
+    "score": 66,
+    "confidence": "medium",
+    "reasons": [
+      "Chart-derived technical score is 66/100.",
+      "Price is above the 20-period and 50-period moving averages."
+    ],
+    "risk_warnings": [
+      "Screenshot-derived candles are approximate and must be verified against a reliable market data source."
+    ]
+  }
 }
 ```
+
+`signal.action` may be `buy`, `sell`, `neutral`, or `insufficient`. The endpoint returns `insufficient` when price-axis calibration fails, fewer than 30 candles are extracted, or extraction confidence is low.
 
 ## `GET /api/providers/status`
 
 Returns configured provider modes and whether providers are available. A missing Finnhub key reports the news provider as `unavailable`.
 
-## Security and compliance requirements
+## Security requirements
 
 - API keys are backend-only and supplied through environment variables.
 - Screenshot parsing is assistive only and must require user confirmation.
-- The API must not return buy/sell commands, guaranteed-return language, or personalized investment recommendations.

@@ -13,9 +13,8 @@ from app.models import (
     TechnicalAnalysis,
 )
 from app.providers.protocols import ExplanationProvider, FundamentalsProvider, MarketDataProvider, NewsProvider
-from app.services.compliance import DISCLAIMER
 from app.services.data_quality import assess_data_quality
-from app.services.explanation import get_educational_conclusion
+from app.services.explanation import get_report_conclusion
 from app.services.indicators import compute_indicators, support_resistance
 from app.services.market_context import market_context_from_bars
 from app.services.risk import assess_risk
@@ -147,7 +146,7 @@ async def analyze_ticker(
         fundamentals_available=fundamentals.quality != "unavailable",
     )
     technical.confidence = combined_confidence
-    conclusion = await get_educational_conclusion(
+    conclusion = await get_report_conclusion(
         technical, combined_score, combined_confidence,
         explanation_provider=explanation_provider,
         news_summary=news.summary,
@@ -177,6 +176,5 @@ async def analyze_ticker(
         news=news,
         fundamentals=fundamentals,
         market_context=market_context,
-        overall={"label": label, "score": combined_score, "confidence": combined_confidence, "educational_conclusion": conclusion},
-        disclaimer=DISCLAIMER,
+        overall={"label": label, "score": combined_score, "confidence": combined_confidence, "conclusion": conclusion},
     )

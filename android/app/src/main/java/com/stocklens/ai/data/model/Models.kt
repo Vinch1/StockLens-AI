@@ -11,6 +11,47 @@ data class AnalyzeRequest(
     @SerializedName("include_fundamentals") val includeFundamentals: Boolean = true
 )
 
+data class ScreenshotParseRequest(
+    @SerializedName("image_base64") val imageBase64: String? = null,
+    val filename: String? = null
+)
+
+data class ScreenshotExtractionSummary(
+    @SerializedName("candle_count") val candleCount: Int,
+    @SerializedName("calibration_confidence") val calibrationConfidence: String,
+    val warnings: List<String> = emptyList()
+)
+
+data class ScreenshotCandle(
+    val index: Int,
+    @SerializedName("timestamp_label") val timestampLabel: String? = null,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val direction: String,
+    val confidence: String
+)
+
+data class ScreenshotSignal(
+    val action: String,
+    val score: Int,
+    val confidence: String,
+    val reasons: List<String> = emptyList(),
+    @SerializedName("risk_warnings") val riskWarnings: List<String> = emptyList()
+)
+
+data class ScreenshotParseResponse(
+    @SerializedName("detected_ticker") val detectedTicker: String? = null,
+    @SerializedName("detected_timeframe") val detectedTimeframe: String? = null,
+    val confidence: String,
+    @SerializedName("needs_confirmation") val needsConfirmation: Boolean,
+    val notes: String,
+    val extraction: ScreenshotExtractionSummary,
+    val candles: List<ScreenshotCandle> = emptyList(),
+    val signal: ScreenshotSignal
+)
+
 data class PriceSummary(
     @SerializedName("last_close") val lastClose: Double,
     @SerializedName("change_pct") val changePct: Double,
@@ -125,7 +166,7 @@ data class OverallSummary(
     val label: String,
     val score: Int,
     val confidence: String,
-    @SerializedName("educational_conclusion") val educationalConclusion: String
+    val conclusion: String
 )
 
 data class AnalyzeResponse(
@@ -142,8 +183,7 @@ data class AnalyzeResponse(
     val news: NewsSummary,
     val fundamentals: FundamentalsSummary,
     @SerializedName("market_context") val marketContext: MarketContextSummary,
-    val overall: OverallSummary,
-    val disclaimer: String
+    val overall: OverallSummary
 )
 
 data class WatchlistItem(

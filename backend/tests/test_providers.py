@@ -14,10 +14,11 @@ class TestProviderFactory:
         providers = create_providers(settings)
         assert providers.market.mode == "live"
 
-    def test_default_providers_are_live_or_unavailable_without_news_key(self):
+    def test_default_providers_are_live_or_unavailable_without_news_key(self, monkeypatch):
         from app.config import Settings
         from app.providers import create_providers
 
+        monkeypatch.delenv("NEWS_API_KEY", raising=False)
         settings = Settings()
         providers = create_providers(settings)
         assert providers.market.mode == "live"

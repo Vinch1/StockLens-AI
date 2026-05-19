@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
         title="StockLens AI API",
-        description="Educational stock research and risk-analysis assistant. Not financial advice.",
+        description="Stock research and risk-analysis assistant.",
         version=VERSION,
         lifespan=lifespan,
     )
@@ -68,7 +68,14 @@ def create_app() -> FastAPI:
 
     @application.post("/api/parse-screenshot")
     async def parse_screenshot_endpoint(request: ScreenshotParseRequest) -> dict[str, object]:
-        return await parse_screenshot(image_base64=request.image_base64, filename=request.filename)
+        providers = _get_providers(application)
+        return (
+            await parse_screenshot(
+                image_base64=request.image_base64,
+                filename=request.filename,
+                chart_metadata_provider=providers.chart_vision,
+            )
+        ).model_dump()
 
     @application.get("/api/providers/status")
     def providers_status() -> dict[str, object]:
@@ -76,6 +83,8 @@ def create_app() -> FastAPI:
         provider_list = [providers.market.status(), providers.news.status(), providers.fundamentals.status()]
         if providers.explanation:
             provider_list.append(providers.explanation.status())
+        if providers.chart_vision:
+            provider_list.append(providers.chart_vision.status())
         return {"status": "ok", "providers": provider_list}
 
     return application

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -128,34 +127,6 @@ fun SettingsScreen(
                 Icon(Icons.Default.Save, null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Save Settings", fontWeight = FontWeight.SemiBold)
-            }
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-            ) {
-                Row(modifier = Modifier.padding(16.dp)) {
-                    Icon(
-                        Icons.Default.Info, null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("Disclaimer", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "StockLens AI provides educational research summaries only. Not financial, investment, tax, or legal advice. Markets involve risk.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Screenshots help identify tickers only. Price analysis uses configured market data.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f)
-                        )
-                    }
-                }
             }
 
             Spacer(Modifier.height(8.dp))

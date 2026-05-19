@@ -26,7 +26,6 @@ jobs:
             docs/product_spec.md
             docs/architecture.md
             docs/api_contract.md
-            docs/compliance_notes.md
             docs/security_privacy.md
             docs/test_plan.md
             docs/roadmap.md
@@ -35,10 +34,10 @@ jobs:
             test -s "$file" || { echo "Missing or empty: $file"; exit 1; }
           done
 
-      - name: Verify educational-only and provider-safety language
+      - name: Verify provider and screenshot safety language
         run: |
           set -euo pipefail
-          rg "educational-only|Education only|For education only" README.md docs
+          rg "screenshot-derived|approximate candles|provider boundaries|provider and privacy boundaries" README.md docs
           rg "backend-only|provider|API keys" README.md docs .env.example docker-compose.yml
 
       - name: Check example environment contains no obvious real secrets

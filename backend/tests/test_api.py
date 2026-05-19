@@ -1,9 +1,15 @@
+import asyncio
+import base64
+from io import BytesIO
+
 from fastapi.testclient import TestClient
+from PIL import Image, ImageDraw
 
 from app.main import create_app
 from app.models import OHLCVBar
-from app.services.compliance import contains_forbidden_language, sanitize_or_fallback
+from app.providers.chart_metadata_provider import ChartVisionHints, PriceAxisLabel
 from app.services.indicators import compute_indicators, ema_series, rsi
+from app.services.screenshot_parser import parse_screenshot
 from app.services.scoring import technical_score, technical_score_from_subscores, technical_subscores
 
 app = create_app()
@@ -22,7 +28,133 @@ def test_parse_screenshot_requires_confirmation():
     payload = response.json()
     assert payload["needs_confirmation"] is True
     assert payload["confidence"] == "low"
-    assert "not from the screenshot" in payload["notes"]
+    assert payload["signal"]["action"] == "insufficient"
+    assert payload["extraction"]["candle_count"] == 0
+    assert "screenshot image" in payload["notes"]
+
+
+def test_parse_screenshot_contract_rejects_invalid_base64():
+    response = client.post("/api/parse-screenshot", json={"image_base64": "not-valid-base64"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["signal"]["action"] == "insufficient"
+    assert payload["candles"] == []
+    assert "disc" + "laimer" not in payload
+
+
+def test_parse_screenshot_extracts_synthetic_candles_and_buy_signal():
+    image_base64 = _synthetic_chart_base64(direction="up", candle_count=60)
+
+    class FakeVisionProvider:
+        mode = "live"
+
+        async def detect_text(self, image_bytes: bytes) -> str:
+            return "NASDAQ: AAPL 1D"
+
+        async def detect_text_blocks(self, image_bytes: bytes):
+            return []
+
+        def status(self):
+            return {}
+
+    class FakeMetadataProvider:
+        mode = "live"
+
+        async def get_chart_hints(self, image_bytes: bytes) -> ChartVisionHints:
+            return ChartVisionHints(
+                detected_ticker="AAPL",
+                detected_timeframe="1D",
+                price_axis_labels=[
+                    PriceAxisLabel(value=140.0, y=40.0),
+                    PriceAxisLabel(value=80.0, y=440.0),
+                ],
+            )
+
+        def status(self):
+            return {}
+
+    result = asyncio.run(
+        parse_screenshot(
+            image_base64=image_base64,
+            vision_provider=FakeVisionProvider(),
+            chart_metadata_provider=FakeMetadataProvider(),
+        )
+    )
+
+    assert result.detected_ticker == "AAPL"
+    assert result.detected_timeframe == "1D"
+    assert result.needs_confirmation is True
+    assert result.extraction.candle_count >= 50
+    assert result.signal.action == "buy"
+    assert result.signal.confidence in {"medium", "high"}
+    assert len(result.candles) == result.extraction.candle_count
+    assert result.candles[-1].close > result.candles[0].close
+
+
+def test_parse_screenshot_extracts_synthetic_sell_signal():
+    image_base64 = _synthetic_chart_base64(direction="down", candle_count=60)
+
+    class FakeVisionProvider:
+        mode = "live"
+
+        async def detect_text(self, image_bytes: bytes) -> str:
+            return "NASDAQ: AAPL 1D"
+
+        async def detect_text_blocks(self, image_bytes: bytes):
+            return []
+
+        def status(self):
+            return {}
+
+    class FakeMetadataProvider:
+        mode = "live"
+
+        async def get_chart_hints(self, image_bytes: bytes) -> ChartVisionHints:
+            return ChartVisionHints(
+                detected_ticker="AAPL",
+                detected_timeframe="1D",
+                price_axis_labels=[
+                    PriceAxisLabel(value=140.0, y=40.0),
+                    PriceAxisLabel(value=80.0, y=440.0),
+                ],
+            )
+
+        def status(self):
+            return {}
+
+    result = asyncio.run(
+        parse_screenshot(
+            image_base64=image_base64,
+            vision_provider=FakeVisionProvider(),
+            chart_metadata_provider=FakeMetadataProvider(),
+        )
+    )
+
+    assert result.extraction.candle_count >= 50
+    assert result.signal.action == "sell"
+    assert result.candles[-1].close < result.candles[0].close
+
+
+def test_parse_screenshot_without_axis_calibration_is_insufficient():
+    image_base64 = _synthetic_chart_base64(direction="down", candle_count=60)
+
+    class FakeVisionProvider:
+        mode = "live"
+
+        async def detect_text(self, image_bytes: bytes) -> str:
+            return "NYSE: MSFT 1D"
+
+        async def detect_text_blocks(self, image_bytes: bytes):
+            return []
+
+        def status(self):
+            return {}
+
+    result = asyncio.run(parse_screenshot(image_base64=image_base64, vision_provider=FakeVisionProvider()))
+    assert result.signal.action == "insufficient"
+    assert result.extraction.candle_count >= 50
+    assert result.candles == []
+    assert any("calibration" in warning.lower() for warning in result.extraction.warnings)
 
 
 def test_indicator_known_values_and_score_bounds():
@@ -39,12 +171,6 @@ def test_indicator_known_values_and_score_bounds():
     assert 0 <= technical_score_from_subscores(subscores) <= 100
 
 
-def test_compliance_filter_rejects_forbidden_output():
-    assert contains_forbidden_language("Buy now for a guaranteed move")
-    fallback = "Educational summary only."
-    assert sanitize_or_fallback("You should invest all in", fallback) == fallback
-
-
 def test_provider_status():
     response = client.get("/api/providers/status")
     assert response.status_code == 200
@@ -53,8 +179,8 @@ def test_provider_status():
     assert "providers" in data
 
 
-def test_live_mode_response_has_disclaimer_and_new_sections():
-    """Verify that with injected providers, disclaimer is always present."""
+def test_live_mode_response_has_new_sections():
+    """Verify that with injected providers, core response sections are present."""
     from app.models import FundamentalMetrics, FundamentalsSummary, NewsSummary
     from app.providers import Providers
 
@@ -112,12 +238,56 @@ def test_live_mode_response_has_disclaimer_and_new_sections():
     )
     assert response.status_code == 200
     payload = response.json()
-    assert "not financial advice" in payload["disclaimer"].lower()
+    assert "disc" + "laimer" not in payload
     assert payload["data_mode"] == "live"
     assert payload["data_quality"]["status"] == "usable"
     assert payload["risk"]["level"] in {"low", "moderate", "elevated", "high"}
     assert payload["market_context"]["benchmark"] == "SPY"
     assert payload["technical"]["trend_score"] is not None
+    assert "conclusion" in payload["overall"]
     assert "data_quality" in payload
     assert "risk" in payload
     assert "market_context" in payload
+
+
+def _synthetic_chart_base64(direction: str, candle_count: int) -> str:
+    width, height = 800, 500
+    left, top, right, bottom = 60, 40, 700, 440
+    min_price, max_price = 80.0, 140.0
+
+    def y_for_price(price: float) -> int:
+        ratio = (max_price - price) / (max_price - min_price)
+        return int(top + ratio * (bottom - top))
+
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    for y in range(top, bottom + 1, 80):
+        draw.line((left, y, right, y), fill=(230, 230, 230), width=1)
+    draw.rectangle((left, top, right, bottom), outline=(210, 210, 210), width=1)
+
+    step = (right - left) / candle_count
+    for index in range(candle_count):
+        trend = index * 0.62
+        base = 92 + trend if direction == "up" else 128 - trend
+        open_price = base
+        close_price = base + 1.8 if direction == "up" else base - 1.8
+        high_price = max(open_price, close_price) + 1.2
+        low_price = min(open_price, close_price) - 1.1
+        center_x = int(left + (index + 0.5) * step)
+        body_half_width = max(2, int(step * 0.28))
+        color = (38, 166, 154) if close_price >= open_price else (239, 83, 80)
+        high_y = y_for_price(high_price)
+        low_y = y_for_price(low_price)
+        open_y = y_for_price(open_price)
+        close_y = y_for_price(close_price)
+        body_top = min(open_y, close_y)
+        body_bottom = max(open_y, close_y)
+        draw.line((center_x, high_y, center_x, low_y), fill=color, width=2)
+        draw.rectangle(
+            (center_x - body_half_width, body_top, center_x + body_half_width, body_bottom),
+            fill=color,
+        )
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("ascii")

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.config import Settings
+from app.providers.chart_metadata_provider import ChartMetadataProvider
 from app.providers.errors import ProviderDataError
 from app.providers.protocols import ExplanationProvider, FundamentalsProvider, MarketDataProvider, NewsProvider
 
@@ -68,12 +69,24 @@ def _create_explanation_provider(settings: Settings) -> ExplanationProvider | No
     return None
 
 
+def _create_chart_metadata_provider(settings: Settings) -> ChartMetadataProvider | None:
+    if settings.CHART_VISION_PROVIDER and settings.CHART_VISION_API_KEY:
+        from app.providers.chart_metadata_provider import VLMChartMetadataProvider
+        return VLMChartMetadataProvider(
+            api_key=settings.CHART_VISION_API_KEY,
+            model=settings.CHART_VISION_MODEL,
+            provider=settings.CHART_VISION_PROVIDER,
+        )
+    return None
+
+
 @dataclass
 class Providers:
     market: MarketDataProvider
     news: NewsProvider
     fundamentals: FundamentalsProvider
     explanation: ExplanationProvider | None
+    chart_vision: ChartMetadataProvider | None = None
 
 
 def create_providers(settings: Settings) -> Providers:
@@ -82,4 +95,5 @@ def create_providers(settings: Settings) -> Providers:
         news=_create_news_provider(settings),
         fundamentals=_create_fundamentals_provider(settings),
         explanation=_create_explanation_provider(settings),
+        chart_vision=_create_chart_metadata_provider(settings),
     )

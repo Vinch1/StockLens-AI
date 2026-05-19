@@ -12,6 +12,8 @@ import com.stocklens.ai.data.model.NewsSummary
 import com.stocklens.ai.data.model.OverallSummary
 import com.stocklens.ai.data.model.PriceSummary
 import com.stocklens.ai.data.model.RiskSummary
+import com.stocklens.ai.data.model.ScreenshotParseRequest
+import com.stocklens.ai.data.model.ScreenshotParseResponse
 import com.stocklens.ai.data.model.SupportResistance
 import com.stocklens.ai.data.model.TechnicalAnalysis
 import com.stocklens.ai.data.model.UserSettings
@@ -27,6 +29,8 @@ class StockLensRepository(
     val watchlist: Flow<List<WatchlistItem>> = preferencesStore.watchlist
 
     suspend fun analyze(request: AnalyzeRequest): AnalyzeResponse = api.analyze(request.copy(ticker = request.ticker.uppercase()))
+    suspend fun parseScreenshot(imageBase64: String, filename: String?): ScreenshotParseResponse =
+        api.parseScreenshot(ScreenshotParseRequest(imageBase64 = imageBase64, filename = filename))
 
     suspend fun saveSettings(settings: UserSettings) = preferencesStore.saveSettings(settings)
     suspend fun addWatchlistSymbol(symbol: String) = preferencesStore.addWatchlistSymbol(symbol)
@@ -72,8 +76,7 @@ class StockLensRepository(
             label = "needs_more_confirmation",
             score = 0,
             confidence = "low",
-            educationalConclusion = "Unable to complete the research summary. This is not financial advice; verify with configured data sources."
-        ),
-        disclaimer = "Educational information only. Not financial advice. Markets involve risk. Verify all data before making decisions."
+            conclusion = "Unable to complete the research summary. Verify configured data sources."
+        )
     )
 }

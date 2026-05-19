@@ -29,6 +29,9 @@ class StockLensViewModel(private val repository: StockLensRepository) : ViewMode
     private val _analyzeUiState = MutableStateFlow(AnalyzeUiState())
     val analyzeUiState: StateFlow<AnalyzeUiState> = _analyzeUiState
 
+    private val _screenshotUiState = MutableStateFlow(ScreenshotUiState())
+    val screenshotUiState: StateFlow<ScreenshotUiState> = _screenshotUiState
+
     fun updateAnalyzeForm(
         ticker: String = analyzeUiState.value.ticker,
         assetType: String = analyzeUiState.value.assetType,
@@ -95,6 +98,34 @@ class StockLensViewModel(private val repository: StockLensRepository) : ViewMode
                     it.copy(isAnalyzing = false, errorMessage = throwable.message ?: "Unable to analyze ticker.")
                 }
             }
+        }
+    }
+
+    fun parseScreenshot(imageBase64: String, filename: String?) {
+        viewModelScope.launch {
+            _screenshotUiState.update {
+                it.copy(isParsing = true, errorMessage = null, selectedFilename = filename)
+            }
+            runCatching {
+                repository.parseScreenshot(imageBase64 = imageBase64, filename = filename)
+            }.onSuccess { result ->
+                _screenshotUiState.update { it.copy(isParsing = false, result = result) }
+            }.onFailure { throwable ->
+                _screenshotUiState.update {
+                    it.copy(isParsing = false, errorMessage = throwable.message ?: "Unable to parse screenshot.")
+                }
+            }
+        }
+    }
+
+    fun applyScreenshotDetectionToForm() {
+        val result = screenshotUiState.value.result ?: return
+        val ticker = result.detectedTicker.orEmpty()
+        val timeframe = result.detectedTimeframe ?: analyzeUiState.value.timeframe
+        if (ticker.isBlank()) {
+            updateAnalyzeForm(timeframe = timeframe)
+        } else {
+            updateAnalyzeForm(ticker = ticker, timeframe = timeframe)
         }
     }
 }

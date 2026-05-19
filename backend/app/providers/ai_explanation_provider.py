@@ -34,21 +34,14 @@ class AIExplanationProvider:
         fundamentals_summary: str = "",
     ) -> str:
         system_prompt = (
-            "You are an educational stock research summarizer. You do NOT provide investment advice, "
-            "financial advice, or trading instructions.\n\n"
+            "You are a stock research summarizer.\n\n"
             "Rules:\n"
-            '- Never use phrases like: "buy now", "sell now", "guaranteed", "risk-free", '
-            '"sure profit", "this stock will", "you should invest", "all in", "100%", '
-            '"can\'t lose", "secret signal"\n'
-            '- Use only these terms: "research candidate", "watchlist candidate", '
-            '"mixed setup", "high-risk setup", "needs more confirmation"\n'
-            '- Always include: "This is educational information only, not financial advice."\n'
             "- Keep response to 3-4 sentences maximum\n"
-            "- Focus on summarizing the technical setup, risks, and what further research could cover"
+            "- Focus on the technical setup, risks, news context, and fundamentals context"
         )
 
         user_message = (
-            "Analyze this stock research data and provide an educational summary:\n"
+            "Analyze this stock research data and provide a summary:\n"
             f"- Technical setup: {setup}\n"
             f"- Overall score: {score}/100\n"
             f"- Confidence: {confidence}\n"

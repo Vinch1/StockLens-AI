@@ -55,7 +55,7 @@ class TestHTTPErrorHandling:
     def test_ai_fallback_on_failure(self):
         """When AI explanation provider fails, template fallback is used."""
         from app.models import TechnicalAnalysis, IndicatorSummary, SupportResistance
-        from app.services.explanation import get_educational_conclusion
+        from app.services.explanation import get_report_conclusion
 
         technical = TechnicalAnalysis(
             setup="bullish",
@@ -74,7 +74,7 @@ class TestHTTPErrorHandling:
                 raise RuntimeError("AI down")
 
         result = asyncio.run(
-            get_educational_conclusion(technical, 70, "medium", explanation_provider=FailingExplanationProvider())
+            get_report_conclusion(technical, 70, "medium", explanation_provider=FailingExplanationProvider())
         )
-        assert "educational" in result.lower()
-        assert "not a recommendation" in result.lower()
+        assert "constructive research candidate" in result.lower()
+        assert "confidence" in result.lower()

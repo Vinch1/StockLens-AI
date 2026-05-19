@@ -65,7 +65,7 @@ fun AnalyzeScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Text(
-                text = "Manual ticker analysis uses backend market data (not screenshots) and is educational only.",
+                text = "Manual ticker analysis uses backend market data. Screenshot analysis uses approximate candles reconstructed from the image.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(16.dp)

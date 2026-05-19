@@ -84,7 +84,7 @@ fun ReportScreen(analyzeUiState: AnalyzeUiState, paddingValues: PaddingValues) {
                     score = report.overall.score
                 )
                 Text(
-                    text = report.overall.educationalConclusion,
+                    text = report.overall.conclusion,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -180,17 +180,7 @@ fun ReportScreen(analyzeUiState: AnalyzeUiState, paddingValues: PaddingValues) {
                     }
                 }
 
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Disclaimer", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        Text(report.disclaimer, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(4.dp))
-                        Text("Generated: ${report.generatedAt}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+                Text("Generated: ${report.generatedAt}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

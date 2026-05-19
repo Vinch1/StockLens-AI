@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,38 +45,6 @@ fun OnboardingScreen(paddingValues: PaddingValues, onComplete: () -> Unit) {
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Educational Only",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "StockLens AI provides educational research summaries only. It is not financial, investment, tax, or legal advice. Markets involve risk — always verify information before making decisions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f)
-                    )
-                }
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Row(
@@ -93,13 +60,13 @@ fun OnboardingScreen(paddingValues: PaddingValues, onComplete: () -> Unit) {
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "No Brokerage Connection",
+                        text = "Research Workflow",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "This app does not place trades, connect brokerage accounts, or provide personalized recommendations.",
+                        text = "Analyze tickers, parse candlestick screenshots, review setup signals, and save symbols to your watchlist.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

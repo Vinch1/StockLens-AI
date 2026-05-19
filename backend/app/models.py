@@ -21,6 +21,8 @@ CatalystType = Literal[
     "sector",
     "other",
 ]
+ScreenshotSignalAction = Literal["buy", "sell", "neutral", "insufficient"]
+ScreenshotCandleDirection = Literal["bullish", "bearish", "doji"]
 
 
 class AnalyzeRequest(BaseModel):
@@ -40,6 +42,42 @@ class AnalyzeRequest(BaseModel):
 class ScreenshotParseRequest(BaseModel):
     image_base64: str | None = None
     filename: str | None = None
+
+
+class ScreenshotExtractionSummary(BaseModel):
+    candle_count: int
+    calibration_confidence: str
+    warnings: list[str]
+
+
+class ScreenshotCandle(BaseModel):
+    index: int
+    timestamp_label: str | None = None
+    open: float
+    high: float
+    low: float
+    close: float
+    direction: ScreenshotCandleDirection
+    confidence: str
+
+
+class ScreenshotSignal(BaseModel):
+    action: ScreenshotSignalAction
+    score: int
+    confidence: str
+    reasons: list[str]
+    risk_warnings: list[str]
+
+
+class ScreenshotParseResponse(BaseModel):
+    detected_ticker: str | None = None
+    detected_timeframe: str | None = None
+    confidence: str
+    needs_confirmation: bool
+    notes: str
+    extraction: ScreenshotExtractionSummary
+    candles: list[ScreenshotCandle]
+    signal: ScreenshotSignal
 
 
 class OHLCVBar(BaseModel):
@@ -165,7 +203,7 @@ class OverallSummary(BaseModel):
     label: str
     score: int
     confidence: str
-    educational_conclusion: str
+    conclusion: str
 
 
 class AnalyzeResponse(BaseModel):
@@ -183,4 +221,3 @@ class AnalyzeResponse(BaseModel):
     fundamentals: FundamentalsSummary
     market_context: MarketContextSummary
     overall: OverallSummary
-    disclaimer: str

@@ -1,8 +1,6 @@
 # StockLens AI
 
-StockLens AI is a production-minded MVP for an **educational stock research and risk-analysis assistant**. It helps users review configured market data, technical indicators, news catalysts, long-term fundamental context, and risk factors without giving stock-picking, auto-trading, or individualized investment advice.
-
-> **Educational information only. Not financial advice.** Markets involve risk. Verify all data before making decisions and consult a qualified professional where appropriate.
+StockLens AI is a production-minded MVP for a **stock research and risk-analysis assistant**. It helps users review configured market data, technical indicators, news catalysts, long-term fundamental context, and risk factors.
 
 ## What is included
 
@@ -10,27 +8,26 @@ StockLens AI is a production-minded MVP for an **educational stock research and 
 - **Technical analysis:** deterministic SMA, EMA, RSI, MACD, Bollinger Bands, ATR, volume ratio, support/resistance approximations, and trend/momentum/structure/volume/volatility sub-scores.
 - **Risk and context:** data-quality checks, ATR percentage, realized volatility, drawdown, liquidity risk, and relative strength versus SPY.
 - **Horizon-aware scoring:** short, swing, and long horizons use different technical/fundamental/risk/news/market-context weights.
+- **Screenshot analysis:** `/api/parse-screenshot` reconstructs approximate candles from visible chart screenshots and returns a technical `buy`, `sell`, `neutral`, or `insufficient` setup signal with reasons and warnings.
 - **Providers:** live/delayed market data and fundamentals through yfinance, plus Finnhub news when `NEWS_API_KEY` is configured.
-- **Compliance controls:** deterministic explanations, forbidden-phrase filtering, visible disclaimers, and no buy/sell command language.
-- **Android skeleton:** native Kotlin + Jetpack Compose, MVVM, Compose Navigation, Retrofit/OkHttp, DataStore, onboarding disclaimer, manual analysis, screenshot-confirmation placeholder, report, watchlist, settings/about.
-- **Docs:** product spec, architecture, API contract, compliance notes, security/privacy notes, test plan, and roadmap.
+- **Report summaries:** deterministic conclusions with optional backend-only AI summaries.
+- **Android skeleton:** native Kotlin + Jetpack Compose, MVVM, Compose Navigation, Retrofit/OkHttp, DataStore, onboarding, manual analysis, screenshot upload and confirmation, report, watchlist, settings/about.
+- **Docs:** product spec, architecture, API contract, security/privacy notes, test plan, and roadmap.
 
 ## Repository structure
 
 ```text
 backend/   FastAPI app, providers, deterministic analysis services, tests
 android/   Kotlin + Jetpack Compose Android MVP skeleton
-docs/      Product, architecture, API, compliance, privacy, test, roadmap docs
+docs/      Product, architecture, API, privacy, test, roadmap docs
 ```
 
 ## Run the backend locally
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+uv sync
+uv run uvicorn app.main:app --reload
 ```
 
 Then open:
@@ -51,7 +48,7 @@ curl -X POST http://localhost:8000/api/analyze \
 
 ```bash
 cd backend
-pytest -q
+uv run pytest -q
 ```
 
 ## Docker Compose
@@ -100,9 +97,11 @@ FUNDAMENTALS_PROVIDER=yfinance
 
 Optional AI explanations require backend-only AI settings such as `AI_PROVIDER=openai`, `AI_API_KEY=...`, and `AI_MODEL=...`. Do not put provider keys in Android resources or Kotlin source.
 
+Optional VLM-assisted chart metadata uses `CHART_VISION_PROVIDER`, `CHART_VISION_API_KEY`, and `CHART_VISION_MODEL`. The VLM may help identify visible ticker/timeframe, chart bounds, and price-axis labels, but candle OHLC reconstruction and signal scoring remain deterministic.
+
 ## Analysis method
 
-`/api/analyze` returns a structured educational report. The backend now separates scoring into:
+`/api/analyze` returns a structured report. The backend now separates scoring into:
 
 - **Data quality:** usable/limited/insufficient status based on bar count and OHLCV sanity checks.
 - **Technical setup:** trend, momentum, price structure, volume confirmation, and volatility sub-scores.
@@ -110,20 +109,21 @@ Optional AI explanations require backend-only AI settings such as `AI_PROVIDER=o
 - **Fundamentals:** growth, profitability, balance sheet, valuation, and cash-flow sub-scores when available.
 - **News catalysts:** live provider summary, sentiment, and catalyst items when configured.
 - **Market context:** relative strength versus SPY over available 20-bar and 60-bar windows.
-- **Overall:** horizon-aware composite score, confidence, educational label, and disclaimer.
+- **Overall:** horizon-aware composite score, confidence, label, and conclusion.
 
 The report is a research aid only. It does not predict returns, rank investments, or instruct users to buy, sell, hold, short, or allocate capital.
+
+`/api/parse-screenshot` is separate from `/api/analyze`: it processes an uploaded candlestick screenshot in memory, reconstructs approximate candle OHLC values from visible pixels and price-axis calibration, and returns a chart-derived technical signal. It does not call yfinance, news, or fundamentals providers. If the chart lacks visible price labels, has too few candles, or extraction confidence is low, the signal is `insufficient`.
 
 ## Documentation
 
 - [Product specification](docs/product_spec.md)
 - [Architecture](docs/architecture.md)
 - [API contract](docs/api_contract.md)
-- [Compliance notes](docs/compliance_notes.md)
 - [Security and privacy](docs/security_privacy.md)
 - [Test plan](docs/test_plan.md)
 - [Roadmap](docs/roadmap.md)
 
 ## Safety boundaries
 
-StockLens AI must not place trades, connect brokerage accounts, claim certainty, scrape TradingView, use screenshots as market-data sources, store API keys in client code, hallucinate prices/news, or output investment instructions as commands.
+StockLens AI must not place trades, connect brokerage accounts, scrape TradingView, treat screenshot-derived candles as verified market data, store API keys in client code, or hallucinate prices/news.

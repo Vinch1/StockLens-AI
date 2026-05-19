@@ -2,7 +2,6 @@
 
 ## Goals
 
-- Verify that educational-only positioning appears in user-facing responses.
 - Verify provider status clearly reports live and unavailable providers.
 - Prevent accidental leaks of credentials, account identifiers, and private screenshots.
 - Provide CI checks that are useful without committing provider credentials.
@@ -21,9 +20,11 @@ When backend implementation exists, add tests for:
 
 - `GET /health`.
 - Symbol validation and structured errors.
-- Educational disclaimer in snapshot and explanation responses.
 - Provider-key absence returning safe unavailable-provider summaries or provider status.
 - Analysis responses include `data_quality`, `risk`, `market_context`, technical sub-scores, and fundamentals sub-scores.
+- Screenshot parsing returns extraction summary, candles, and structured signal.
+- Synthetic candlestick screenshots reconstruct known OHLC values within tolerance and produce expected setup actions.
+- Missing price axis, invalid base64, cropped charts, too few candles, and low-confidence extraction return `insufficient`.
 - Short, swing, and long horizons use different composite scoring weights.
 - Error responses that do not include stack traces or secrets.
 
@@ -31,8 +32,8 @@ When backend implementation exists, add tests for:
 
 When client implementation exists, add tests for:
 
-- Educational disclaimer visibility.
 - Safe rendering of missing, delayed, unavailable, or live provider data.
+- Screenshot upload, loading, signal rendering, warning, and insufficient states.
 - Screenshot test fixtures that do not expose secrets or personal data.
 
 ### Security Tests
@@ -47,7 +48,7 @@ When client implementation exists, add tests for:
 2. Confirm `/api/providers/status` reports market and fundamentals as live and news as live or unavailable.
 3. Request a sample stock analysis.
 4. Confirm response includes data quality, technical sub-scores, risk, fundamentals, news, market context, and overall sections.
-5. Confirm no response says to buy, sell, or hold.
+5. Upload a clear candlestick screenshot and confirm the result shows candle count, signal, reasons, and warnings.
 6. Capture a demo screenshot and verify no secrets or personal data are visible.
 7. Review logs for redaction.
 

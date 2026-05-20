@@ -7,7 +7,7 @@ StockLens AI is a production-minded MVP for a **stock research and risk-analysis
 - **Backend:** Python FastAPI service with `/health`, `/api/analyze`, `/api/parse-screenshot`, and `/api/providers/status`.
 - **Technical analysis:** deterministic SMA, EMA, RSI, MACD, Bollinger Bands, ATR, volume ratio, support/resistance approximations, and trend/momentum/structure/volume/volatility sub-scores.
 - **Risk and context:** data-quality checks, ATR percentage, realized volatility, drawdown, liquidity risk, and relative strength versus SPY.
-- **Horizon-aware scoring:** short, swing, and long horizons use different technical/fundamental/risk/news/market-context weights.
+- **Differential horizon-aware scoring:** short, swing, and long horizons use availability-aware technical/fundamental/news/market-context weights, then apply risk as a penalty instead of treating low risk as a bullish signal.
 - **Screenshot analysis:** `/api/parse-screenshot` reconstructs approximate candles from visible chart screenshots and returns a technical `buy`, `sell`, `neutral`, or `insufficient` setup signal with reasons and warnings.
 - **Providers:** live/delayed market data and fundamentals through yfinance, plus Finnhub news when `NEWS_API_KEY` is configured.
 - **Report summaries:** deterministic conclusions with optional backend-only AI summaries.
@@ -141,7 +141,28 @@ Leave `CHART_VISION_BASE_URL` blank to use `https://dashscope-intl.aliyuncs.com/
 - **Fundamentals:** growth, profitability, balance sheet, valuation, and cash-flow sub-scores when available.
 - **News catalysts:** live provider summary, sentiment, and catalyst items when configured.
 - **Market context:** relative strength versus SPY over available 20-bar and 60-bar windows.
-- **Overall:** horizon-aware composite score, confidence, label, and conclusion.
+- **Overall:** `diffscore-v1` availability-aware composite score, risk penalty, confidence, label, contribution breakdown, and conclusion.
+
+`diffscore-v1` uses the following deterministic formula:
+
+```text
+base_score =
+  sum(weight[horizon, domain] * available[domain] * domain_score[domain])
+  / sum(weight[horizon, domain] * available[domain])
+
+risk_penalty = lambda[horizon] * (100 - risk_safety_score)
+
+final_score = clamp(round(base_score - risk_penalty), 0, 100)
+```
+
+News still arrives from the provider as `-50..50` sentiment and is shifted to `0..100` before scoring. Missing or unrequested news/fundamentals and unavailable benchmark context are excluded from the weighted mean rather than filled with neutral `50`s. Confidence is a trust metric:
+
+```text
+confidence_score =
+  (data_quality_score / 100) * provider_coverage * agreement_factor
+```
+
+`provider_coverage` is the share of requested scoring weight backed by available data, and `agreement_factor` falls as available domain scores diverge.
 
 The report is a research aid only. It does not predict returns, rank investments, or instruct users to buy, sell, hold, short, or allocate capital.
 

@@ -199,11 +199,38 @@ class MarketContextSummary(BaseModel):
     summary: str
 
 
+ScoreDomain = Literal["technical", "fundamentals", "news", "market_context"]
+
+
+class ScoreContribution(BaseModel):
+    domain: ScoreDomain
+    score: int | None = None
+    requested_weight: float
+    effective_weight: float
+    contribution: float
+    available: bool
+    reason: str | None = None
+
+
+class ScoreBreakdown(BaseModel):
+    model_version: str
+    base_score: int
+    risk_penalty: float
+    risk_adjusted_score: int
+    risk_safety_score: int
+    provider_coverage: float
+    agreement_factor: float
+    confidence_score: float
+    contributions: list[ScoreContribution]
+
+
 class OverallSummary(BaseModel):
     label: str
     score: int
     confidence: str
     conclusion: str
+    score_model_version: str | None = None
+    score_breakdown: ScoreBreakdown | None = None
 
 
 class AnalyzeResponse(BaseModel):

@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 from PIL import Image, ImageDraw
 
 from app.main import create_app
-from app.models import OHLCVBar
+from app.models import IndicatorSummary, MarketContextSummary, NewsSummary, OHLCVBar, RiskSummary, SupportResistance, TechnicalAnalysis
 from app.providers.chart_metadata_provider import ChartVisionHints, PriceAxisLabel
 from app.services.indicators import compute_indicators, ema_series, rsi
 from app.services.screenshot_parser import parse_screenshot
-from app.services.scoring import technical_score, technical_score_from_subscores, technical_subscores
+from app.services.scoring import overall_score_breakdown, technical_score, technical_score_from_subscores, technical_subscores
 
 app = create_app()
 client = TestClient(app)
@@ -171,6 +171,45 @@ def test_indicator_known_values_and_score_bounds():
     assert 0 <= technical_score_from_subscores(subscores) <= 100
 
 
+def test_differential_score_renormalizes_missing_domains_and_penalizes_risk():
+    technical = TechnicalAnalysis(
+        setup="bullish",
+        score=80,
+        confidence="medium",
+        indicators=IndicatorSummary(),
+        support_resistance=SupportResistance(support=[], resistance=[]),
+        evidence=[],
+        risks=[],
+    )
+    news = NewsSummary(sentiment="positive", score=20, items=[], summary="Recent news is available.")
+    market_context = MarketContextSummary(
+        score=60,
+        benchmark="SPY",
+        relative_strength_20d=2.0,
+        relative_strength_60d=None,
+        summary="Mixed.",
+    )
+    risk = RiskSummary(score=70, level="moderate", warnings=[])
+
+    breakdown = overall_score_breakdown(
+        technical=technical,
+        news=news,
+        fundamental_score=90,
+        risk=risk,
+        market_context=market_context,
+        horizon="swing",
+        news_available=True,
+        fundamentals_available=False,
+    )
+
+    assert breakdown.model_version == "diffscore-v1"
+    assert breakdown.provider_coverage == 0.75
+    assert breakdown.base_score == 74
+    assert breakdown.risk_penalty == 6
+    assert breakdown.risk_adjusted_score == 68
+    assert next(item for item in breakdown.contributions if item.domain == "fundamentals").available is False
+
+
 def test_provider_status():
     response = client.get("/api/providers/status")
     assert response.status_code == 200
@@ -245,6 +284,8 @@ def test_live_mode_response_has_new_sections():
     assert payload["market_context"]["benchmark"] == "SPY"
     assert payload["technical"]["trend_score"] is not None
     assert "conclusion" in payload["overall"]
+    assert payload["overall"]["score_model_version"] == "diffscore-v1"
+    assert payload["overall"]["score_breakdown"]["risk_penalty"] >= 0
     assert "data_quality" in payload
     assert "risk" in payload
     assert "market_context" in payload

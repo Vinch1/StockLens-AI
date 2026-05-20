@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
+
+from loguru import logger
 
 from app.models import (
     AnalyzeRequest,
@@ -19,8 +22,9 @@ from app.services.indicators import compute_indicators, support_resistance
 from app.services.market_context import market_context_from_bars
 from app.services.risk import assess_risk
 from app.services.scoring import (
+    SCORE_MODEL_VERSION,
     confidence_v2,
-    overall_score_v2,
+    overall_score_breakdown,
     setup_label,
     technical_evidence,
     technical_risks,
@@ -60,6 +64,10 @@ def _unavailable_fundamentals(reason: str) -> FundamentalsSummary:
     )
 
 
+def _news_available(requested: bool, news: NewsSummary) -> bool:
+    return requested and not news.summary.startswith("News analysis is unavailable")
+
+
 def _response_data_mode(*modes: str) -> str:
     clean_modes = {mode for mode in modes if mode}
     active_modes = {mode for mode in clean_modes if mode != "unavailable"}
@@ -96,6 +104,7 @@ async def analyze_ticker(
             news = await news_provider.get_news(request.ticker)
         except Exception as exc:
             news = _unavailable_news(str(exc))
+        _log_collected_news(request.ticker, news)
     else:
         news = _disabled_news()
 
@@ -129,21 +138,26 @@ async def analyze_ticker(
         risks=[*technical_risks(indicators, last.close), *risk.warnings],
         **subscores,
     )
-    combined_score = overall_score_v2(
+    fundamentals_available = request.include_fundamentals and fundamentals.quality != "unavailable"
+    score_breakdown = overall_score_breakdown(
         technical=technical,
         news=news,
         fundamental_score=fundamentals.score,
         risk=risk,
         market_context=market_context,
         horizon=request.horizon,
+        news_available=_news_available(request.include_news, news),
+        fundamentals_available=fundamentals_available,
     )
+    combined_score = score_breakdown.risk_adjusted_score
     combined_confidence = confidence_v2(
         data_quality=data_quality,
         technical=technical,
         risk=risk,
         market_context=market_context,
         horizon=request.horizon,
-        fundamentals_available=fundamentals.quality != "unavailable",
+        fundamentals_available=fundamentals_available,
+        score_breakdown=score_breakdown,
     )
     technical.confidence = combined_confidence
     conclusion = await get_report_conclusion(
@@ -176,5 +190,25 @@ async def analyze_ticker(
         news=news,
         fundamentals=fundamentals,
         market_context=market_context,
-        overall={"label": label, "score": combined_score, "confidence": combined_confidence, "conclusion": conclusion},
+        overall={
+            "label": label,
+            "score": combined_score,
+            "confidence": combined_confidence,
+            "conclusion": conclusion,
+            "score_model_version": SCORE_MODEL_VERSION,
+            "score_breakdown": score_breakdown,
+        },
     )
+
+
+def _log_collected_news(ticker: str, news: NewsSummary) -> None:
+    payload = {
+        "ticker": ticker,
+        "sentiment": news.sentiment,
+        "score": news.score,
+        "summary": news.summary,
+        "item_count": len(news.items),
+        "items": [item.model_dump(mode="json") for item in news.items],
+    }
+    level = "WARNING" if news.summary.startswith("News analysis is unavailable") else "INFO"
+    logger.log(level, "Collected news {}", json.dumps(payload, ensure_ascii=False))

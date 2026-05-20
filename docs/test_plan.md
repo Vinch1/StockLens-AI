@@ -21,11 +21,12 @@ Automated pytest coverage should verify:
 - `GET /health`.
 - Symbol validation and structured errors.
 - Provider-key absence returning safe unavailable-provider summaries or provider status.
-- Analysis responses include `data_quality`, `risk`, `market_context`, technical sub-scores, and fundamentals sub-scores.
+- Analysis responses include `data_quality`, `risk`, `market_context`, technical sub-scores, fundamentals sub-scores, and `diffscore-v1` overall score breakdowns.
 - Screenshot parsing returns extraction summary, candles, and structured signal.
 - Synthetic candlestick screenshots reconstruct known OHLC values within tolerance and produce expected setup actions.
 - Missing price axis, invalid base64, cropped charts, too few candles, and low-confidence extraction return `insufficient`.
-- Short, swing, and long horizons use different composite scoring weights.
+- Short, swing, and long horizons use different composite scoring weights and risk-penalty strengths.
+- Missing news, fundamentals, or benchmark context are excluded from the weighted mean and lower confidence through provider coverage.
 - Error responses that do not include stack traces or secrets.
 
 ### Live API Request Scripts
@@ -81,7 +82,7 @@ When client implementation exists, add tests for:
 2. Run `uv run python tests/health_request.py` and confirm the service responds with `status: ok`.
 3. Run `uv run python tests/providers_status_request.py` and confirm market and fundamentals are live and news is live or unavailable.
 4. Run `uv run python tests/analyze_request.py --ticker AAPL` and confirm a sample stock analysis response.
-5. Confirm the analysis response includes data quality, technical sub-scores, risk, fundamentals, news, market context, and overall sections.
+5. Confirm the analysis response includes data quality, technical sub-scores, risk, fundamentals, news, market context, and overall sections with `score_model_version` and `score_breakdown`.
 6. Place a clear candlestick screenshot in `backend/tests`, then run `uv run python tests/parse_screenshot_request.py tests/<image-name>`.
 7. Confirm the screenshot response shows candle count, signal, reasons, and warnings.
 8. Capture a demo screenshot and verify no secrets or personal data are visible.

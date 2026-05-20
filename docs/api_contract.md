@@ -31,7 +31,7 @@ Accepted timeframes: `15m`, `1h`, `4h`, `1D`, `1W`. Accepted horizons: `short`, 
 
 ### Response shape
 
-The response includes ticker metadata, `data_mode`, `price_summary`, `data_quality`, `technical`, `risk`, `news`, `fundamentals`, `market_context`, and `overall`. Technical output includes SMA 20/50/200, EMA 12/26, RSI 14, MACD line/signal/histogram, Bollinger Bands, ATR, volume ratio, support/resistance, evidence, risks, and trend/momentum/structure/volume/volatility sub-scores.
+The response includes ticker metadata, `data_mode`, `price_summary`, `data_quality`, `technical`, `risk`, `news`, `fundamentals`, `market_context`, and `overall`. Technical output includes SMA 20/50/200, EMA 12/26, RSI 14, MACD line/signal/histogram, Bollinger Bands, ATR, volume ratio, support/resistance, evidence, risks, and trend/momentum/structure/volume/volatility sub-scores. Overall output uses `diffscore-v1`, which excludes unavailable scoring domains from the weighted mean and applies risk as a penalty.
 
 ```json
 {
@@ -130,12 +130,63 @@ The response includes ticker metadata, `data_mode`, `price_summary`, `data_quali
   },
   "overall": {
     "label": "mixed_research_candidate",
-    "score": 61,
-    "confidence": "low",
-    "conclusion": "This is a mixed research candidate. The technical setup is neutral to bullish, with low confidence based on configured data."
+    "score": 63,
+    "confidence": "medium",
+    "conclusion": "This is a mixed research candidate. The technical setup is neutral to bullish, with medium confidence based on configured data.",
+    "score_model_version": "diffscore-v1",
+    "score_breakdown": {
+      "model_version": "diffscore-v1",
+      "base_score": 67,
+      "risk_penalty": 3.6,
+      "risk_adjusted_score": 63,
+      "risk_safety_score": 82,
+      "provider_coverage": 0.6,
+      "agreement_factor": 0.96,
+      "confidence_score": 0.576,
+      "contributions": [
+        {
+          "domain": "technical",
+          "score": 68,
+          "requested_weight": 0.45,
+          "effective_weight": 0.75,
+          "contribution": 51.0,
+          "available": true,
+          "reason": null
+        },
+        {
+          "domain": "fundamentals",
+          "score": null,
+          "requested_weight": 0.25,
+          "effective_weight": 0.0,
+          "contribution": 0.0,
+          "available": false,
+          "reason": "fundamentals data is unavailable or was not requested."
+        },
+        {
+          "domain": "news",
+          "score": null,
+          "requested_weight": 0.15,
+          "effective_weight": 0.0,
+          "contribution": 0.0,
+          "available": false,
+          "reason": "news data is unavailable or was not requested."
+        },
+        {
+          "domain": "market_context",
+          "score": 64,
+          "requested_weight": 0.15,
+          "effective_weight": 0.25,
+          "contribution": 16.0,
+          "available": true,
+          "reason": null
+        }
+      ]
+    }
   }
 }
 ```
+
+`score_breakdown.confidence_score` is `0..1` and maps to `high` at `>= 0.80`, `medium` at `>= 0.55`, and `low` below that.
 
 ## `POST /api/parse-screenshot`
 

@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+from statistics import pstdev
+
 from app.models import (
     DataQualitySummary,
     IndicatorSummary,
     MarketContextSummary,
     NewsSummary,
     RiskSummary,
+    ScoreBreakdown,
+    ScoreContribution,
     SupportResistance,
     TechnicalAnalysis,
 )
+
+SCORE_MODEL_VERSION = "diffscore-v1"
 
 
 def clamp(value: int, low: int = 0, high: int = 100) -> int:
@@ -218,27 +224,123 @@ def overall_score(technical: TechnicalAnalysis, news: NewsSummary, fundamental_s
 def horizon_weights(horizon: str) -> dict[str, float]:
     if horizon == "short":
         return {
-            "technical": 0.55,
+            "technical": 0.65,
             "fundamentals": 0.00,
-            "risk": 0.20,
-            "news": 0.15,
-            "market_context": 0.10,
+            "news": 0.20,
+            "market_context": 0.15,
         }
     if horizon == "long":
         return {
-            "technical": 0.20,
-            "fundamentals": 0.45,
-            "risk": 0.15,
+            "technical": 0.25,
+            "fundamentals": 0.55,
             "news": 0.10,
             "market_context": 0.10,
         }
     return {
-        "technical": 0.40,
-        "fundamentals": 0.20,
-        "risk": 0.15,
+        "technical": 0.45,
+        "fundamentals": 0.25,
         "news": 0.15,
-        "market_context": 0.10,
+        "market_context": 0.15,
     }
+
+
+def horizon_risk_penalty_lambda(horizon: str) -> float:
+    if horizon == "short":
+        return 0.25
+    if horizon == "long":
+        return 0.15
+    return 0.20
+
+
+def _is_market_context_available(market_context: MarketContextSummary) -> bool:
+    return market_context.relative_strength_20d is not None or market_context.relative_strength_60d is not None
+
+
+def _agreement_factor(scores: list[int]) -> float:
+    if len(scores) < 2:
+        return 1.0
+    return max(0.0, min(1.0, 1 - (pstdev(scores) / 50)))
+
+
+def overall_score_breakdown(
+    technical: TechnicalAnalysis,
+    news: NewsSummary,
+    fundamental_score: int,
+    risk: RiskSummary,
+    market_context: MarketContextSummary,
+    horizon: str,
+    *,
+    news_available: bool = True,
+    fundamentals_available: bool = True,
+) -> ScoreBreakdown:
+    weights = horizon_weights(horizon)
+    domain_scores = {
+        "technical": technical.score,
+        "fundamentals": fundamental_score,
+        "news": news.score + 50,
+        "market_context": market_context.score,
+    }
+    availability = {
+        "technical": True,
+        "fundamentals": fundamentals_available,
+        "news": news_available,
+        "market_context": _is_market_context_available(market_context),
+    }
+
+    total_requested_weight = sum(weight for weight in weights.values() if weight > 0)
+    available_weight = sum(
+        weight
+        for domain, weight in weights.items()
+        if weight > 0 and availability[domain]
+    )
+
+    contributions: list[ScoreContribution] = []
+    weighted_sum = 0.0
+    available_scores: list[int] = []
+    for domain, requested_weight in weights.items():
+        data_available = availability[domain]
+        participates = data_available and requested_weight > 0
+        score = domain_scores[domain] if data_available else None
+        effective_weight = (requested_weight / available_weight) if available_weight and participates else 0.0
+        contribution = (domain_scores[domain] * effective_weight) if participates else 0.0
+        weighted_sum += contribution
+        if participates:
+            available_scores.append(domain_scores[domain])
+        reason = None
+        if not data_available:
+            reason = f"{domain} data is unavailable or was not requested."
+        elif requested_weight <= 0:
+            reason = f"{domain} has zero weight for the {horizon} horizon."
+        contributions.append(
+            ScoreContribution(
+                domain=domain,  # type: ignore[arg-type]
+                score=score,
+                requested_weight=round(requested_weight, 4),
+                effective_weight=round(effective_weight, 4),
+                contribution=round(contribution, 4),
+                available=data_available,
+                reason=reason,
+            )
+        )
+
+    base_score = clamp(round(weighted_sum)) if available_weight else 0
+    risk_penalty = round(horizon_risk_penalty_lambda(horizon) * (100 - risk.score), 2)
+    risk_adjusted_score = clamp(round(base_score - risk_penalty))
+    provider_coverage = round((available_weight / total_requested_weight) if total_requested_weight else 0.0, 4)
+    agreement_factor = round(_agreement_factor(available_scores), 4)
+    confidence_score = round(provider_coverage * agreement_factor, 4)
+
+    return ScoreBreakdown(
+        model_version=SCORE_MODEL_VERSION,
+        base_score=base_score,
+        risk_penalty=risk_penalty,
+        risk_adjusted_score=risk_adjusted_score,
+        risk_safety_score=risk.score,
+        provider_coverage=provider_coverage,
+        agreement_factor=agreement_factor,
+        confidence_score=confidence_score,
+        contributions=contributions,
+    )
 
 
 def overall_score_v2(
@@ -249,15 +351,24 @@ def overall_score_v2(
     market_context: MarketContextSummary,
     horizon: str,
 ) -> int:
-    weights = horizon_weights(horizon)
-    adjusted_news_score = news.score + 50
-    return clamp(round(
-        (technical.score * weights["technical"])
-        + (fundamental_score * weights["fundamentals"])
-        + (risk.score * weights["risk"])
-        + (adjusted_news_score * weights["news"])
-        + (market_context.score * weights["market_context"])
-    ))
+    return overall_score_breakdown(
+        technical=technical,
+        news=news,
+        fundamental_score=fundamental_score,
+        risk=risk,
+        market_context=market_context,
+        horizon=horizon,
+    ).risk_adjusted_score
+
+
+def confidence_from_breakdown(data_quality: DataQualitySummary, score_breakdown: ScoreBreakdown) -> str:
+    score = round((data_quality.score / 100) * score_breakdown.confidence_score, 4)
+    score_breakdown.confidence_score = score
+    if score >= 0.80:
+        return "high"
+    if score >= 0.55:
+        return "medium"
+    return "low"
 
 
 def confidence_v2(
@@ -267,7 +378,11 @@ def confidence_v2(
     market_context: MarketContextSummary,
     horizon: str,
     fundamentals_available: bool,
+    score_breakdown: ScoreBreakdown | None = None,
 ) -> str:
+    if score_breakdown is not None:
+        return confidence_from_breakdown(data_quality, score_breakdown)
+
     score = data_quality.score
 
     if data_quality.bars_count < 200:

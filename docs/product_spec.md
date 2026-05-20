@@ -22,8 +22,8 @@ StockLens AI is a stock research and risk-analysis assistant. The MVP helps user
 - Backend exposes `/health`, `/api/analyze`, `/api/parse-screenshot`, and `/api/providers/status`.
 - Backend `/api/parse-screenshot` decodes images in memory, reconstructs visible candlestick OHLC values when price-axis calibration is available, and returns `buy`, `sell`, `neutral`, or `insufficient` technical setup actions with reasons and warnings.
 - Backend computes SMA 20/50/200, EMA 12/26, RSI 14, MACD, Bollinger Bands, ATR 14, volume ratio, support/resistance approximations, risk metrics, and relative-strength context deterministically.
-- Backend applies transparent horizon-aware scoring and confidence rules.
-- Backend includes data-quality, technical, risk, fundamentals, news, market-context, and overall sections in analysis responses.
+- Backend applies transparent `diffscore-v1` horizon-aware scoring and confidence rules.
+- Backend includes data-quality, technical, risk, fundamentals, news, market-context, and overall sections in analysis responses, including an overall score breakdown.
 - News and fundamentals providers are abstracted and configured only on the backend.
 - Android uses Kotlin, Jetpack Compose, MVVM, Compose Navigation, Retrofit/OkHttp, and DataStore.
 - Android shows loading, empty, error, and unavailable-provider states.
@@ -32,7 +32,7 @@ StockLens AI is a stock research and risk-analysis assistant. The MVP helps user
 
 - `GET /health` returns status ok and service/version metadata.
 - `POST /api/analyze` returns a structured analysis for AAPL using configured backend providers.
-- Analysis responses include trend, momentum, structure, volume, volatility, risk, data-quality, fundamentals, news, and market-context evidence where available.
+- Analysis responses include trend, momentum, structure, volume, volatility, risk, data-quality, fundamentals, news, market-context evidence, and score contribution details where available.
 - Screenshot flow uploads an image, shows extracted candle count, signal, reasons, warnings, and requires confirmation of detected ticker/timeframe.
 - Watchlist and onboarding acknowledgment are stored locally on device.
 - README documents backend, Android, and backend-only provider key setup.

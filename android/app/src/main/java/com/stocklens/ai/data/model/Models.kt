@@ -162,11 +162,35 @@ data class MarketContextSummary(
     val summary: String
 )
 
+data class ScoreContribution(
+    val domain: String,
+    val score: Int? = null,
+    @SerializedName("requested_weight") val requestedWeight: Double,
+    @SerializedName("effective_weight") val effectiveWeight: Double,
+    val contribution: Double,
+    val available: Boolean,
+    val reason: String? = null
+)
+
+data class ScoreBreakdown(
+    @SerializedName("model_version") val modelVersion: String,
+    @SerializedName("base_score") val baseScore: Int,
+    @SerializedName("risk_penalty") val riskPenalty: Double,
+    @SerializedName("risk_adjusted_score") val riskAdjustedScore: Int,
+    @SerializedName("risk_safety_score") val riskSafetyScore: Int,
+    @SerializedName("provider_coverage") val providerCoverage: Double,
+    @SerializedName("agreement_factor") val agreementFactor: Double,
+    @SerializedName("confidence_score") val confidenceScore: Double,
+    val contributions: List<ScoreContribution> = emptyList()
+)
+
 data class OverallSummary(
     val label: String,
     val score: Int,
     val confidence: String,
-    val conclusion: String
+    val conclusion: String,
+    @SerializedName("score_model_version") val scoreModelVersion: String? = null,
+    @SerializedName("score_breakdown") val scoreBreakdown: ScoreBreakdown? = null
 )
 
 data class AnalyzeResponse(

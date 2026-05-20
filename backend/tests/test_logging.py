@@ -6,6 +6,8 @@ from loguru import logger
 
 from app.api_logging import _decode_bytes, _level_for_status
 from app.logging_config import _truncate_terminal_message, configure_api_logging
+from app.models import NewsItem, NewsSummary
+from app.services.analysis_service import _log_collected_news
 
 
 def test_terminal_messages_are_truncated_to_first_50_characters():
@@ -50,3 +52,36 @@ def test_api_logging_keeps_full_message_for_file_sinks(client):
 
     assert response.status_code == 200
     assert any(long_content in message for message in messages)
+
+
+def test_collected_news_logging_includes_full_news_payload():
+    messages: list[str] = []
+    sink_id = logger.add(messages.append, level="INFO", format="{message}")
+    long_title = "AAPL wins major enterprise AI deal with very long detailed headline"
+
+    try:
+        _log_collected_news(
+            "AAPL",
+            NewsSummary(
+                sentiment="positive",
+                score=20,
+                summary="Recent news for AAPL shows positive sentiment.",
+                items=[
+                    NewsItem(
+                        title=long_title,
+                        source="Example News",
+                        published_at="2026-05-20T00:00:00+00:00",
+                        url="https://example.com/aapl-ai-deal",
+                        sentiment="positive",
+                        catalyst_type="product",
+                        summary="AAPL announced a large enterprise AI partnership.",
+                    )
+                ],
+            ),
+        )
+    finally:
+        logger.remove(sink_id)
+
+    assert any("Collected news" in message for message in messages)
+    assert any(long_title in message for message in messages)
+    assert any("https://example.com/aapl-ai-deal" in message for message in messages)

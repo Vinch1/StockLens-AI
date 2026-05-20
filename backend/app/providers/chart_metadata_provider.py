@@ -6,11 +6,13 @@ import re
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
-from app.providers.litellm_logging import suppress_litellm_optional_dependency_warnings
+from app.providers.litellm_logging import suppress_litellm_debug_info, suppress_litellm_optional_dependency_warnings
 
 suppress_litellm_optional_dependency_warnings()
 
 import litellm
+
+suppress_litellm_debug_info(litellm)
 
 _QWEN_OPENAI_COMPATIBLE_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
 

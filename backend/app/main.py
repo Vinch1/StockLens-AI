@@ -6,7 +6,9 @@ from collections.abc import AsyncGenerator
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api_logging import ApiLoggingMiddleware
 from app.config import get_settings
+from app.logging_config import configure_api_logging
 from app.models import AnalyzeRequest, ScreenshotParseRequest
 from app.providers import Providers, create_providers
 from app.providers.errors import ProviderError
@@ -29,6 +31,7 @@ def _get_providers(app: FastAPI) -> Providers:
 
 
 def create_app() -> FastAPI:
+    configure_api_logging()
     settings = get_settings()
     application = FastAPI(
         title="StockLens AI API",
@@ -45,6 +48,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.add_middleware(ApiLoggingMiddleware)
 
     @application.get("/health")
     def health() -> dict[str, str]:

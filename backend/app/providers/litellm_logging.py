@@ -21,3 +21,7 @@ def suppress_litellm_optional_dependency_warnings() -> None:
     if any(getattr(log_filter, "_stocklens_filter", False) for log_filter in logger.filters):
         return
     logger.addFilter(_OptionalAwsDependencyFilter())
+
+
+def suppress_litellm_debug_info(litellm_module: object) -> None:
+    setattr(litellm_module, "suppress_debug_info", True)

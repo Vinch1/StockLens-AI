@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from app.providers.litellm_logging import suppress_litellm_optional_dependency_warnings
+from app.providers.litellm_logging import suppress_litellm_debug_info, suppress_litellm_optional_dependency_warnings
 
 suppress_litellm_optional_dependency_warnings()
 
 import litellm
+
+suppress_litellm_debug_info(litellm)
 
 from app.providers.errors import ProviderError, ProviderUnavailableError
 

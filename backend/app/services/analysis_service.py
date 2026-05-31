@@ -99,22 +99,25 @@ async def analyze_ticker(
     else:
         benchmark_bars = benchmark_result
 
-    if request.include_news:
-        try:
-            news = await news_provider.get_news(request.ticker)
-        except Exception as exc:
-            news = _unavailable_news(str(exc))
-        _log_collected_news(request.ticker, news)
-    else:
-        news = _disabled_news()
+    async def _fetch_news() -> NewsSummary:
+        if request.include_news:
+            try:
+                return await news_provider.get_news(request.ticker)
+            except Exception as exc:
+                return _unavailable_news(str(exc))
+        return _disabled_news()
 
-    if request.include_fundamentals:
-        try:
-            fundamentals = await fundamentals_provider.get_fundamentals(request.ticker)
-        except Exception as exc:
-            fundamentals = _unavailable_fundamentals(str(exc))
-    else:
-        fundamentals = _disabled_fundamentals()
+    async def _fetch_fundamentals() -> FundamentalsSummary:
+        if request.include_fundamentals:
+            try:
+                return await fundamentals_provider.get_fundamentals(request.ticker)
+            except Exception as exc:
+                return _unavailable_fundamentals(str(exc))
+        return _disabled_fundamentals()
+
+    news, fundamentals = await asyncio.gather(_fetch_news(), _fetch_fundamentals())
+    if request.include_news:
+        _log_collected_news(request.ticker, news)
 
     if len(bars) < 2:
         raise ValueError("At least two OHLCV bars are required for analysis.")

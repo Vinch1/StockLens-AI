@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.api_logging import ApiLoggingMiddleware
 from app.config import get_settings
 from app.logging_config import configure_api_logging
+from app.middleware.timeout import RequestTimeoutMiddleware
 from app.models import AnalyzeRequest, ScreenshotParseRequest
 from app.providers import Providers, create_providers
 from app.providers.errors import ProviderError
@@ -17,10 +24,14 @@ from app.services.screenshot_parser import parse_screenshot
 
 VERSION = "0.1.0"
 
+_limiter = Limiter(key_func=get_remote_address, default_limits=["30/minute"])
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=8))
     app.state.providers = create_providers(settings)
     app.state.settings = settings
     yield
@@ -48,18 +59,23 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.add_middleware(RequestTimeoutMiddleware, timeout_seconds=30.0)
+    application.add_middleware(GZipMiddleware, minimum_size=500)
     application.add_middleware(ApiLoggingMiddleware)
+    application.state.limiter = _limiter
+    application.add_middleware(SlowAPIMiddleware)
 
     @application.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "service": "stocklens-ai-api", "version": VERSION}
 
     @application.post("/api/analyze")
-    async def analyze(request: AnalyzeRequest) -> dict[str, object]:
+    @_limiter.limit("10/minute")
+    async def analyze(request: Request, body: AnalyzeRequest) -> dict[str, object]:
         providers = _get_providers(application)
         try:
             return (await analyze_ticker(
-                request,
+                body,
                 market_provider=providers.market,
                 news_provider=providers.news,
                 fundamentals_provider=providers.fundamentals,

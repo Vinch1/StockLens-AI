@@ -20,6 +20,7 @@ import com.stocklens.ai.data.model.UserSettings
 import com.stocklens.ai.data.model.WatchlistItem
 import com.stocklens.ai.data.remote.NetworkModule
 import com.stocklens.ai.data.remote.StockLensApi
+import com.stocklens.ai.data.remote.retryWithBackoff
 import kotlinx.coroutines.flow.Flow
 
 class StockLensRepository(
@@ -29,9 +30,11 @@ class StockLensRepository(
     val settings: Flow<UserSettings> = preferencesStore.settings
     val watchlist: Flow<List<WatchlistItem>> = preferencesStore.watchlist
 
-    suspend fun analyze(request: AnalyzeRequest): AnalyzeResponse = api.analyze(request.copy(ticker = request.ticker.uppercase()))
+    suspend fun analyze(request: AnalyzeRequest): AnalyzeResponse =
+        retryWithBackoff { api.analyze(request.copy(ticker = request.ticker.uppercase())) }
+
     suspend fun parseScreenshot(imageBase64: String, filename: String?): ScreenshotParseResponse =
-        api.parseScreenshot(ScreenshotParseRequest(imageBase64 = imageBase64, filename = filename))
+        retryWithBackoff { api.parseScreenshot(ScreenshotParseRequest(imageBase64 = imageBase64, filename = filename)) }
 
     suspend fun saveSettings(settings: UserSettings) {
         NetworkModule.currentBaseUrl = settings.apiBaseUrl

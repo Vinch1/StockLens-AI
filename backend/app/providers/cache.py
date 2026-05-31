@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from typing import Any, Awaitable, Callable
 
@@ -10,6 +11,7 @@ _news_cache: dict[tuple[str, str], tuple[float, Any]] = {}
 _fundamentals_cache: dict[tuple[str, str], tuple[float, Any]] = {}
 
 _DEFAULT_TTL = 300
+_cache_lock = threading.Lock()
 
 
 def get_with_cache(
@@ -19,12 +21,14 @@ def get_with_cache(
     ttl: float = _DEFAULT_TTL,
 ) -> Any:
     now = time.time()
-    if key in cache:
-        cached_at, cached_val = cache[key]
-        if now - cached_at < ttl:
-            return cached_val
+    with _cache_lock:
+        if key in cache:
+            cached_at, cached_val = cache[key]
+            if now - cached_at < ttl:
+                return cached_val
     value = fetcher()
-    cache[key] = (now, value)
+    with _cache_lock:
+        cache[key] = (now, value)
     return value
 
 
@@ -35,10 +39,12 @@ async def aget_with_cache(
     ttl: float = _DEFAULT_TTL,
 ) -> Any:
     now = time.time()
-    if key in cache:
-        cached_at, cached_val = cache[key]
-        if now - cached_at < ttl:
-            return cached_val
+    with _cache_lock:
+        if key in cache:
+            cached_at, cached_val = cache[key]
+            if now - cached_at < ttl:
+                return cached_val
     value = await fetcher()
-    cache[key] = (now, value)
+    with _cache_lock:
+        cache[key] = (now, value)
     return value

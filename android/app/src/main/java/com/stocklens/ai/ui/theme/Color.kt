@@ -22,6 +22,11 @@ val Bearish = Color(0xFFEF5350)
 val Neutral = Color(0xFF78909C)
 val Warning = Color(0xFFFFC107)
 
+// Dark-adapted semantic colors (brighter for readability on dark surfaces)
+val DarkBullish = Color(0xFF81C784)
+val DarkBearish = Color(0xFFE57373)
+val DarkNeutral = Color(0xFFB0BEC5)
+
 // ── Dark-adapted accents (softer/tonal for dark backgrounds) ──
 val DarkPrimary = Color(0xFF80CBC4)         // soft mint teal
 val DarkOnPrimary = Color(0xFF003731)

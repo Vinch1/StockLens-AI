@@ -69,6 +69,10 @@ import com.stocklens.ai.data.model.AnalyzeResponse
 import com.stocklens.ai.ui.screens.EmptyState
 import com.stocklens.ai.ui.theme.Bearish
 import com.stocklens.ai.ui.theme.Bullish
+import com.stocklens.ai.ui.theme.DarkBearish
+import com.stocklens.ai.ui.theme.DarkBullish
+import com.stocklens.ai.ui.theme.DarkNeutral
+import com.stocklens.ai.ui.theme.LocalDarkTheme
 import com.stocklens.ai.ui.theme.Neutral
 import com.stocklens.ai.viewmodel.AnalyzeUiState
 import java.io.File
@@ -214,8 +218,8 @@ private fun ReportBody(report: AnalyzeResponse) {
         Text("RSI14: ${ind.rsi14} · MACD: ${ind.macd}/${ind.macdSignal}", style = MaterialTheme.typography.bodySmall)
         Text("ATR14: ${ind.atr14} · Vol ratio: ${ind.volumeRatio}", style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(8.dp))
-        Text("Support: ${report.technical.supportResistance.support.joinToString()}", style = MaterialTheme.typography.bodySmall, color = Bullish)
-        Text("Resistance: ${report.technical.supportResistance.resistance.joinToString()}", style = MaterialTheme.typography.bodySmall, color = Bearish)
+        Text("Support: ${report.technical.supportResistance.support.joinToString()}", style = MaterialTheme.typography.bodySmall, color = scoreColor(80))
+        Text("Resistance: ${report.technical.supportResistance.resistance.joinToString()}", style = MaterialTheme.typography.bodySmall, color = scoreColor(20))
         Spacer(Modifier.height(12.dp))
         SubScoreLine("Trend", report.technical.trendScore)
         SubScoreLine("Momentum", report.technical.momentumScore)
@@ -396,11 +400,13 @@ private fun InfoBanner(message: String) {
     }
 }
 
+@Composable
 private fun scoreColor(score: Int): Color {
+    val isDark = LocalDarkTheme.current
     return when {
-        score >= 70 -> Bullish
-        score >= 40 -> Neutral
-        else -> Bearish
+        score >= 70 -> if (isDark) DarkBullish else Bullish
+        score >= 40 -> if (isDark) DarkNeutral else Neutral
+        else -> if (isDark) DarkBearish else Bearish
     }
 }
 

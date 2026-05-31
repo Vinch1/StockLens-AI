@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.view.WindowCompat
 import com.stocklens.ai.ui.navigation.StockLensNavHost
 import com.stocklens.ai.ui.theme.StockLensTheme
 import com.stocklens.ai.viewmodel.StockLensViewModel
@@ -20,7 +21,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val appUiState by viewModel.appUiState.collectAsState()
-            StockLensTheme(darkTheme = appUiState.settings.darkMode) {
+            val isDark = appUiState.settings.darkMode
+
+            // Update system bar appearance to match theme
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.isAppearanceLightStatusBars = !isDark
+            insetsController.isAppearanceLightNavigationBars = !isDark
+
+            StockLensTheme(darkTheme = isDark) {
                 StockLensNavHost(viewModel = viewModel)
             }
         }

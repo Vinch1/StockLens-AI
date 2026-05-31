@@ -39,6 +39,10 @@ import com.stocklens.ai.data.model.ScreenshotParseResponse
 import com.stocklens.ai.ui.screens.ScreenScaffold
 import com.stocklens.ai.ui.theme.Bearish
 import com.stocklens.ai.ui.theme.Bullish
+import com.stocklens.ai.ui.theme.DarkBearish
+import com.stocklens.ai.ui.theme.DarkBullish
+import com.stocklens.ai.ui.theme.DarkNeutral
+import com.stocklens.ai.ui.theme.LocalDarkTheme
 import com.stocklens.ai.ui.theme.Neutral
 import com.stocklens.ai.viewmodel.ScreenshotUiState
 
@@ -211,11 +215,13 @@ private fun BulletList(title: String, items: List<String>) {
     }
 }
 
+@Composable
 private fun signalColor(action: String): Color {
+    val isDark = LocalDarkTheme.current
     return when (action.lowercase()) {
-        "buy" -> Bullish
-        "sell" -> Bearish
-        "neutral" -> Neutral
-        else -> Color.Gray
+        "buy" -> if (isDark) DarkBullish else Bullish
+        "sell" -> if (isDark) DarkBearish else Bearish
+        "neutral" -> if (isDark) DarkNeutral else Neutral
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }

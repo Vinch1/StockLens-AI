@@ -15,7 +15,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -32,7 +31,6 @@ import com.stocklens.ai.ui.screens.onboarding.OnboardingScreen
 import com.stocklens.ai.ui.screens.report.ReportScreen
 import com.stocklens.ai.ui.screens.settings.SettingsScreen
 import com.stocklens.ai.ui.screens.watchlist.WatchlistScreen
-import com.stocklens.ai.ui.theme.Primary
 import com.stocklens.ai.viewmodel.StockLensViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +62,7 @@ fun StockLensNavHost(viewModel: StockLensViewModel) {
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (currentTitle != null) {
                 TopAppBar(
@@ -112,11 +110,11 @@ fun StockLensNavHost(viewModel: StockLensViewModel) {
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Primary,
-                                selectedTextColor = Primary,
-                                indicatorColor = Primary.copy(alpha = 0.12f),
-                                unselectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         )
                     }

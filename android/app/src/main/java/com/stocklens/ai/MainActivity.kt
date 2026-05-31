@@ -14,7 +14,8 @@ import com.stocklens.ai.viewmodel.StockLensViewModelFactory
 
 class MainActivity : ComponentActivity() {
     private val viewModel: StockLensViewModel by viewModels {
-        StockLensViewModelFactory((application as StockLensApplication).repository)
+        val app = application as StockLensApplication
+        StockLensViewModelFactory(app.repository, app.networkMonitor)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

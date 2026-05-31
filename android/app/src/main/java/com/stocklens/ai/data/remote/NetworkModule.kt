@@ -1,5 +1,6 @@
 package com.stocklens.ai.data.remote
 
+import okhttp3.ConnectionPool
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -36,8 +37,11 @@ object NetworkModule {
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(urlRewriteInterceptor)
         .addInterceptor(loggingInterceptor)
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .connectionPool(ConnectionPool(maxIdleConnections = 5, keepAliveDuration = 5, timeUnit = TimeUnit.MINUTES))
         .build()
 
     val api: StockLensApi = Retrofit.Builder()

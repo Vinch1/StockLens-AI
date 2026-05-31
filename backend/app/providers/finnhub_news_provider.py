@@ -54,6 +54,15 @@ class FinnhubNewsProvider:
 
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
+        self._client: httpx.AsyncClient | None = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                timeout=httpx.Timeout(10.0),
+                limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            )
+        return self._client
 
     async def get_news(self, ticker: str) -> NewsSummary:
         return await aget_with_cache(
@@ -73,9 +82,9 @@ class FinnhubNewsProvider:
         headers = {"X-Finnhub-Token": self._api_key}
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(_FINNHUB_NEWS_URL, params=params, headers=headers, timeout=10)
-                response.raise_for_status()
+            client = self._get_client()
+            response = await client.get(_FINNHUB_NEWS_URL, params=params, headers=headers)
+            response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 429:
                 raise ProviderUnavailableError("Finnhub rate limit exceeded") from exc

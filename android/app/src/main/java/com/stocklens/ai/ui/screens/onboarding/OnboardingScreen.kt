@@ -30,7 +30,7 @@ import com.stocklens.ai.ui.screens.ScreenScaffold
 
 @Composable
 fun OnboardingScreen(paddingValues: PaddingValues, onComplete: () -> Unit) {
-    ScreenScaffold(title = "Welcome", paddingValues = paddingValues) {
+    ScreenScaffold(paddingValues = paddingValues) {
         Text(
             text = "StockLens AI",
             style = MaterialTheme.typography.displayLarge,

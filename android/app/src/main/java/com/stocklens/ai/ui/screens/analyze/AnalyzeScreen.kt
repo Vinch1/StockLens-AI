@@ -59,7 +59,7 @@ fun AnalyzeScreen(
     onScreenshotConfirm: () -> Unit,
     onReport: () -> Unit
 ) {
-    ScreenScaffold(title = "Analyze", paddingValues = paddingValues) {
+    ScreenScaffold(paddingValues = paddingValues) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)

@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
@@ -38,7 +36,8 @@ import com.stocklens.ai.ui.screens.ScreenScaffold
 fun SettingsScreen(
     settings: UserSettings,
     paddingValues: PaddingValues,
-    onSave: (UserSettings) -> Unit
+    onSave: (UserSettings) -> Unit,
+    onDarkModeChange: (Boolean) -> Unit = {}
 ) {
     var apiBaseUrl by remember(settings.apiBaseUrl) { mutableStateOf(settings.apiBaseUrl) }
     var dataMode by remember(settings.dataMode) { mutableStateOf(settings.dataMode) }
@@ -46,11 +45,9 @@ fun SettingsScreen(
     var horizon by remember(settings.defaultHorizon) { mutableStateOf(settings.defaultHorizon) }
     var darkMode by remember(settings.darkMode) { mutableStateOf(settings.darkMode) }
 
-    ScreenScaffold(title = "Settings", paddingValues = paddingValues) {
+    ScreenScaffold(paddingValues = paddingValues) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
@@ -105,7 +102,7 @@ fun SettingsScreen(
                         Text("Dark mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Text("Toggle app theme", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = darkMode, onCheckedChange = { darkMode = it })
+                    Switch(checked = darkMode, onCheckedChange = { darkMode = it; onDarkModeChange(it) })
                 }
             }
 

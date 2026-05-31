@@ -6,8 +6,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,6 +35,7 @@ import com.stocklens.ai.ui.screens.watchlist.WatchlistScreen
 import com.stocklens.ai.ui.theme.Primary
 import com.stocklens.ai.viewmodel.StockLensViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockLensNavHost(viewModel: StockLensViewModel) {
     val navController = rememberNavController()
@@ -48,8 +53,35 @@ fun StockLensNavHost(viewModel: StockLensViewModel) {
     val currentDestination = backStackEntry?.destination
     val showBottomBar = bottomBarDestinations.any { it.route == currentDestination?.route }
 
+    val currentTitle = when (currentDestination?.route) {
+        Destination.Home.route -> "StockLens AI"
+        Destination.Analyze.route -> "Analyze"
+        Destination.ScreenshotConfirm.route -> "Screenshot Input"
+        Destination.Watchlist.route -> "Watchlist"
+        Destination.Settings.route -> "Settings"
+        Destination.Onboarding.route -> "Welcome"
+        else -> null
+    }
+
     Scaffold(
         containerColor = Color.Transparent,
+        topBar = {
+            if (currentTitle != null) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = currentTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    )
+                )
+            }
+        },
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
@@ -156,7 +188,10 @@ fun StockLensNavHost(viewModel: StockLensViewModel) {
                 SettingsScreen(
                     settings = appUiState.settings,
                     paddingValues = paddingValues,
-                    onSave = viewModel::saveSettings
+                    onSave = viewModel::saveSettings,
+                    onDarkModeChange = { darkMode ->
+                        viewModel.saveSettings(appUiState.settings.copy(darkMode = darkMode))
+                    }
                 )
             }
         }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -74,7 +75,7 @@ class StockLensViewModel(private val repository: StockLensRepository) : ViewMode
     fun analyze() {
         val state = analyzeUiState.value
         if (state.ticker.isBlank()) {
-            _analyzeUiState.update { it.copy(errorMessage = "Enter a ticker symbol.") }
+            showError("Enter a ticker symbol.")
             return
         }
         viewModelScope.launch {
@@ -94,9 +95,18 @@ class StockLensViewModel(private val repository: StockLensRepository) : ViewMode
                 _analyzeUiState.update { it.copy(isAnalyzing = false, report = report) }
                 repository.addWatchlistSymbol(report.ticker)
             }.onFailure { throwable ->
-                _analyzeUiState.update {
-                    it.copy(isAnalyzing = false, errorMessage = throwable.message ?: "Unable to analyze ticker.")
-                }
+                showError(throwable.message ?: "Unable to analyze ticker.")
+                _analyzeUiState.update { it.copy(isAnalyzing = false) }
+            }
+        }
+    }
+
+    private fun showError(message: String) {
+        _analyzeUiState.update { it.copy(errorMessage = message) }
+        viewModelScope.launch {
+            delay(5_000)
+            _analyzeUiState.update {
+                if (it.errorMessage == message) it.copy(errorMessage = null) else it
             }
         }
     }

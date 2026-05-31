@@ -22,15 +22,33 @@ val Bearish = Color(0xFFEF5350)
 val Neutral = Color(0xFF78909C)
 val Warning = Color(0xFFFFC107)
 
-// Dark surfaces
-val DarkBackground = Color(0xFF0D1117)
-val DarkSurface = Color(0xFF161B22)
-val DarkSurfaceVariant = Color(0xFF21262D)
-val DarkOnSurface = Color(0xFFE6EDF3)
-val DarkOnSurfaceVariant = Color(0xFF8B949E)
-val DarkOutline = Color(0xFF30363D)
+// ── Dark-adapted accents (softer/tonal for dark backgrounds) ──
+val DarkPrimary = Color(0xFF80CBC4)         // soft mint teal
+val DarkOnPrimary = Color(0xFF003731)
+val DarkPrimaryContainer = Color(0xFF004D40)
+val DarkOnPrimaryContainer = Color(0xFFB2DFDB)
 
-// Light surfaces
+val DarkSecondary = Color(0xFF90CAF9)       // soft sky blue
+val DarkOnSecondary = Color(0xFF0D2F5E)
+val DarkSecondaryContainer = Color(0xFF1565C0)
+val DarkOnSecondaryContainer = Color(0xFFBBDEFB)
+
+val DarkTertiary = Color(0xFFFFD54F)        // warm gold
+val DarkOnTertiary = Color(0xFF3E2D00)
+
+val DarkError = Color(0xFFEF9A9A)
+val DarkOnError = Color(0xFF680003)
+
+// ── Dark surfaces (subtle teal undertone for cohesion) ──
+val DarkBackground = Color(0xFF0D1117)
+val DarkSurface = Color(0xFF111820)
+val DarkSurfaceVariant = Color(0xFF1A2230)
+val DarkOnSurface = Color(0xFFE6EDF3)
+val DarkOnSurfaceVariant = Color(0xFF9EAFC0)
+val DarkOutline = Color(0xFF2D3748)
+val DarkOutlineVariant = Color(0xFF1E2A3A)
+
+// ── Light surfaces ──
 val LightBackground = Color(0xFFFAFBFC)
 val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFF0F2F5)

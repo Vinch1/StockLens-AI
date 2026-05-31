@@ -45,7 +45,7 @@ fun WatchlistScreen(
 ) {
     var symbol by remember { mutableStateOf("") }
 
-    ScreenScaffold(title = "Watchlist", paddingValues = paddingValues) {
+    ScreenScaffold(paddingValues = paddingValues) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

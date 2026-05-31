@@ -18,6 +18,7 @@ import com.stocklens.ai.data.model.SupportResistance
 import com.stocklens.ai.data.model.TechnicalAnalysis
 import com.stocklens.ai.data.model.UserSettings
 import com.stocklens.ai.data.model.WatchlistItem
+import com.stocklens.ai.data.remote.NetworkModule
 import com.stocklens.ai.data.remote.StockLensApi
 import kotlinx.coroutines.flow.Flow
 
@@ -32,7 +33,10 @@ class StockLensRepository(
     suspend fun parseScreenshot(imageBase64: String, filename: String?): ScreenshotParseResponse =
         api.parseScreenshot(ScreenshotParseRequest(imageBase64 = imageBase64, filename = filename))
 
-    suspend fun saveSettings(settings: UserSettings) = preferencesStore.saveSettings(settings)
+    suspend fun saveSettings(settings: UserSettings) {
+        NetworkModule.currentBaseUrl = settings.apiBaseUrl
+        preferencesStore.saveSettings(settings)
+    }
     suspend fun addWatchlistSymbol(symbol: String) = preferencesStore.addWatchlistSymbol(symbol)
     suspend fun removeWatchlistSymbol(symbol: String) = preferencesStore.removeWatchlistSymbol(symbol)
 

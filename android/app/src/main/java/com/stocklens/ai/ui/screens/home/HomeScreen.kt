@@ -41,7 +41,7 @@ fun HomeScreen(
     onAnalyze: () -> Unit,
     onWatchlist: () -> Unit
 ) {
-    ScreenScaffold(title = "StockLens AI", paddingValues = paddingValues) {
+    ScreenScaffold(paddingValues = paddingValues) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
